@@ -1,0 +1,24 @@
+taller-facturacion-backend/
+├── app/
+│   ├── config.py           # Configuración general y variables de entorno
+│   ├── database.py         # Conexión a PostgreSQL (SQLAlchemy o asyncpg)
+│   ├── main.py             # Punto de entrada de la API
+│   ├── auth/               # Todo lo relacionado con seguridad y usuarios
+│   │   ├── hash.py
+│   │   └── jwt.py
+│   ├── routers/            # Rutas/End points de la API
+│   │   ├── clientes.py
+│   │   ├── facturas.py
+│   │   └── usuarios.py
+│   ├── schemas/            # Validadores de datos (Pydantic para entrada/salida)
+│   │   ├── cliente.py
+│   │   └── factura.py
+│   ├── crud/               # Consultas directas a la base de datos (Create, Read, Update, Delete)
+│   │   ├── crud_cliente.py
+│   │   └── crud_factura.py
+│   └── utils/              # Generación de PDFs y otras utilidades
+│       └── pdf.py
+├── .env                    # Variables de entorno
+├── .gitignore
+├── requirements.txt        # Dependencias del proyecto
+└── README.md

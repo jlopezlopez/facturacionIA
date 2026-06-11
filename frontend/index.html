@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carpintería Metálica - Gestión ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 font-sans min-h-screen flex flex-col">
+
+    <div id="vista-login" class="flex items-center justify-center min-h-screen px-4">
+        <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full border border-slate-200">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-slate-800">Carpintería Metálica</h2>
+                <p class="text-slate-500 text-sm mt-1">Acceso al panel de facturación</p>
+            </div>
+            <form id="form-login" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Usuario</label>
+                    <input type="text" id="login-usuario" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Contraseña</label>
+                    <input type="password" id="login-password" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit" class="w-full bg-blue-900 text-white py-2 rounded-lg font-semibold hover:bg-blue-800 transition">Iniciar Sesión</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="vista-dashboard" class="hidden flex flex-1 min-h-screen">
+        
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shadow-xl">
+            <div>
+                <div class="p-5 bg-slate-950 text-white font-bold text-lg tracking-wide border-b border-slate-800">
+                    🛠️ Taller Metalúrgico
+                </div>
+                <nav class="p-4 space-y-2">
+                    <button onclick="cambiarPestana('clientes')" id="nav-clientes" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition bg-slate-800 text-white">
+                        👥 Fichas de Clientes
+                    </button>
+                    <button onclick="cambiarPestana('presupuestos')" id="nav-presupuestos" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition hover:bg-slate-800 hover:text-white">
+                        📋 Presupuestos / Obras
+                    </button>
+                    <button onclick="cambiarPestana('facturas')" id="nav-facturas" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition hover:bg-slate-800 hover:text-white">
+                        💵 Facturas Emitidas
+                    </button>
+                </nav>
+            </div>
+            <div class="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
+                <span id="usuario-sesion" class="text-xs font-mono text-slate-400 truncate max-w-[120px]"></span>
+                <button id="btn-logout" class="text-xs bg-red-600/20 text-red-400 px-2 py-1 rounded hover:bg-red-600 hover:text-white transition">Salir</button>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-8 overflow-y-auto">
+            
+            <section id="sec-clientes" class="space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Clientes del Taller</h2>
+                        <p class="text-slate-500 text-xs">Fichas técnicas completas con sincronización de base de datos de 11 columnas</p>
+                    </div>
+                    <button id="btn-nuevo-cliente" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg shadow">➕ Nuevo Cliente</button>
+                </div>
+
+                <div class="bg-white rounded-xl shadow border overflow-hidden">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 border-b font-semibold text-slate-700 select-none">
+                            <tr>
+                                <th onclick="ordenarPor('id')" class="p-3 cursor-pointer hover:bg-slate-100 transition text-blue-900">ID ⇅</th>
+                                <th onclick="ordenarPor('razonsocial')" class="p-3 cursor-pointer hover:bg-slate-100 transition text-blue-900">Razón Social ⇅</th>
+                                <th onclick="ordenarPor('NIF')" class="p-3 cursor-pointer hover:bg-slate-100 transition text-blue-900">NIF ⇅</th>
+                                <th class="p-3">Teléfono</th>
+                                <th class="p-3">Dirección Completa (Ubicación) (CP)</th>
+                                <th class="p-3">Observaciones</th>
+                                <th class="p-3 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-clientes" class="divide-y text-slate-600"></tbody>
+                    </table>
+                </div>
+
+                <div id="seccion-historial" class="hidden bg-white rounded-xl shadow border p-6 space-y-4">
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 id="historial-titulo" class="text-base font-bold text-slate-800">Documentos del Cliente</h3>
+                        <button onclick="document.getElementById('seccion-historial').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-semibold text-amber-700 text-xs mb-2">📋 Presupuestos Emitidos</h4>
+                            <div class="border rounded-lg overflow-hidden bg-slate-50">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-slate-100 text-slate-600 font-semibold">
+                                        <tr><th class="p-2">Número</th><th class="p-2">Fecha</th><th class="p-2">Total</th><th class="p-2">Estado</th></tr>
+                                    </thead>
+                                    <tbody id="historial-presupuestos" class="divide-y divide-slate-200 bg-white"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-blue-700 text-xs mb-2">💵 Facturas Emitidas</h4>
+                            <div class="border rounded-lg overflow-hidden bg-slate-50">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-slate-100 text-slate-600 font-semibold">
+                                        <tr><th class="p-2">Número</th><th class="p-2">Fecha</th><th class="p-2">Total</th><th class="p-2">Estado</th></tr>
+                                    </thead>
+                                    <tbody id="historial-facturas" class="divide-y divide-slate-200 bg-white"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sec-presupuestos" class="hidden text-slate-400 text-sm italic">Panel de presupuestos activo.</section>
+            <section id="sec-facturas" class="hidden text-slate-400 text-sm italic">Panel de facturación activo.</section>
+        </main>
+    </div>
+
+    <div id="modal-cliente" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 max-h-[95vh] overflow-y-auto">
+            <h3 id="modal-cliente-titulo" class="font-bold border-b pb-2 text-slate-800 text-lg">Ficha de Cliente</h3>
+            <form id="form-cliente" class="space-y-3">
+                <input type="hidden" id="cliente-id-input">
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Razón Social *</label>
+                        <input type="text" id="c-razonsocial" required class="w-full p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">NIF / CIF *</label>
+                        <input type="text" id="c-NIF" required class="w-full p-2 border rounded text-sm font-mono focus:ring-1 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Teléfono de Contacto</label>
+                    <input type="text" id="c-telefono" class="w-full p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500">
+                </div>
+
+                <div class="grid grid-cols-4 gap-2">
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Dirección / Calle</label>
+                        <input type="text" id="c-calle" class="w-full p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Número</label>
+                        <input type="text" id="c-numero" class="w-full p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Piso / Puerta</label>
+                        <input type="text" id="c-piso" class="w-full p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Población</label>
+                        <input type="text" id="c-poblacion" class="w-full p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Provincia</label>
+                        <input type="text" id="c-provincia" class="w-full p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Cód. Postal (CP)</label>
+                        <input type="text" id="c-cp" class="w-full p-2 border rounded text-sm font-mono focus:ring-1 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Observaciones Técnicas</label>
+                    <textarea id="c-observaciones" rows="3" class="w-full p-2 border rounded text-sm text-slate-700 bg-slate-50 focus:ring-1 focus:ring-blue-500"></textarea>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="document.getElementById('modal-cliente').classList.add('hidden')" class="w-full p-2 bg-slate-100 text-slate-700 rounded text-sm font-medium">Cancelar</button>
+                    <button type="submit" class="w-full p-2 bg-blue-900 text-white rounded text-sm font-semibold hover:bg-blue-800">Guardar Ficha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
