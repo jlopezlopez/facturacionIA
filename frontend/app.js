@@ -221,7 +221,7 @@ async function inicializarModuloFacturas(filtro = null) {
 
     // 2. Cargamos el JavaScript modular externo (facturas.js) para delegar el control
     try {
-        const moduloFacturas = await import("./facturas.js");
+        const moduloFacturas = await import("./facturas/facturas.js");
         
         // 3. Forzamos a que se muestre el listado inicializando las sub-vistas
         const subVistaLista = document.getElementById("sub-vista-lista");
@@ -266,14 +266,17 @@ async function cargarFacturasDeBD(clienteId = null) {
     try {
         let url = `${API_URL}/facturacion/facturas/detallados`;
         
+        // Si el backend soporta filtrar directamente en la URL, lo dejamos.
+        // Si no, no pasa nada, porque luego filtraremos en el frontend.
         if (clienteId) {
-            url += `?cliente_id=${clienteId}`;
+            url += `?numerocliente=${clienteId}`;
         }
 
         const r = await fetch(url, {
             headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
         });
         
+        // Guardamos las facturas en la variable global
         globalFacturas = r.ok ? await r.json() : [];
     } catch (err) { 
         console.error("Error en fetch de facturas:", err);

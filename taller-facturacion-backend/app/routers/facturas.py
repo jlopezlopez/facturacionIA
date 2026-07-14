@@ -253,18 +253,51 @@ def obtener_presupuestos_detallados(usuario_actual: dict = Depends(obtener_usuar
 def obtener_facturas_detallados(usuario_actual: dict = Depends(obtener_usuario_actual)):
     with get_db_connection() as conn:
         with conn.cursor() as cursor:
+            # SQL mejorado que calcula la base imponible y el total con IVA aplicado directamente desde la DB
             query = """
-                SELECT f.id, f.numerofactura, f.fecha, f.pagado, f.iva, c.razonsocial, c.NIF, f.numerocliente
+                SELECT 
+                    f.id, 
+                    f.numerofactura, 
+                    f.fecha, 
+                    f.pagado, 
+                    f.iva, 
+                    c.razonsocial, 
+                    c.NIF, 
+                    f.numerocliente,
+                    COALESCE(
+                        SUM(
+                            (cf.cantidad * cf.preciounidad) * (1 - (cf.descuento / 100.0))
+                        ), 0
+                    ) AS base_imponible
                 FROM factura f
                 INNER JOIN cliente c ON f.numerocliente = c.id
+                LEFT JOIN conceptofactura cf ON f.id = cf.idfactura
+                GROUP BY f.id, f.numerofactura, f.fecha, f.pagado, f.iva, c.razonsocial, c.NIF, f.numerocliente
                 ORDER BY f.id DESC;
             """
             cursor.execute(query)
             filas = cursor.fetchall()
-            return [{
-                "id": f[0], "numero": f[1], "fecha": str(f[2]), "pagado": f[3], "iva": float(f[4]),
-                "razonsocial": f[5], "NIF": f[6], "numerocliente": f[7]
-            } for f in filas]
+            resultado = []
+            for f in filas:
+                base_imponible = float(f[8])
+                porcentaje_iva = float(f[4])
+                
+                # Calculamos el total con el IVA sumado
+                total_con_iva = base_imponible * (1 + (porcentaje_iva / 100.0))
+                
+                resultado.append({
+                    "id": f[0], 
+                    "numero": f[1], 
+                    "fecha": str(f[2]), 
+                    "pagado": f[3], 
+                    "iva": porcentaje_iva,
+                    "razonsocial": f[5], 
+                    "NIF": f[6], 
+                    "numerocliente": f[7],
+                    "total": total_con_iva  # <--- Enviamos el importe calculado listo al Frontend
+                })
+                
+            return resultado
         
 
 # ==========================================

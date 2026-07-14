@@ -18,7 +18,85 @@ export async function inicializar(filtro) {
 
     const btnPdf = document.getElementById("btn-imprimir-pdf");
     if (btnPdf) {
-        btnPdf.onclick = () => window.print();
+        btnPdf.onclick = () => {
+            // 1. Seleccionamos el folio blanco de la factura
+            const elementoFactura = document.getElementById("sub-vista-detalle");
+
+            if (!elementoFactura) {
+                alert("No se encontró el contenedor de la factura.");
+                return;
+            }
+
+            // 🆕 1. Guardamos las clases originales del contenedor para no perder su diseño web
+            const clasesOriginales = elementoFactura.className;
+            
+            // 🆕 2. Le quitamos cualquier borde, redondeo o sombra (Tailwind)
+            elementoFactura.classList.remove(
+                "border", "border-gray-200", "border-slate-200", 
+                "rounded", "rounded-md", "rounded-lg", "rounded-xl", 
+                "shadow", "shadow-md", "shadow-sm"
+            );
+
+            // 2. Ocultamos temporalmente los botones de control y el formulario de añadir conceptos
+            const selectoresOcultar = [
+                "#btn-volver-listado",
+                "#btn-imprimir-pdf",
+                "#btn-guardar-cambios-factura",
+                "#pdf-btn-add-concepto",
+                // Si tienes la zona de agregar conceptos envuelta en un contenedor, puedes ocultarlo entero:
+                ".no-print", 
+                "input[type='text']", 
+                "input[type='number']",
+                // OCULTAMOS LA COLUMNA DE ACCIÓN EN CABECERA Y FILAS:
+                ".columna-accion",
+                ".factura-pagada",
+                // OCULTAMOS EL CHECKBOX DE PAGADO (Y subimos al contenedor gris que lo envuelve):
+                "#check-factura-pagada"
+            ];
+            
+            // Buscamos y aplicamos un display: none temporal
+            const elementosAOcultar = elementoFactura.querySelectorAll(selectoresOcultar.join(", "));
+            elementosAOcultar.forEach(el => {
+                el.dataset.originalDisplay = el.style.display; // Guardamos el estado original
+                el.style.setProperty("display", "none", "important");
+            });
+
+            // 3. Ajustes de diseño para que el PDF luzca impecable en papel virtual DIN A4
+            const opciones = {
+                margin:       5, // Márgenes limpios de 10mm alrededor de la factura
+                filename:     `Factura_${facturaSeleccionada ? facturaSeleccionada.numero : 'Taller'}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { 
+                    scale: 3,        // Multiplicador de resolución (se verá nítido incluso al hacer zoom)
+                    useCORS: true,   // Evita problemas de carga de imágenes externas si las hubiera
+                    letterRendering: true
+                },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' } // DIN A4 Vertical estándar
+            };
+
+            // 4. Generamos y descargamos el PDF
+            html2pdf()
+                .set(opciones)
+                .from(elementoFactura)
+                .save()
+                .then(() => {
+                    // 5. Una vez generado, devolvemos los botones e inputs a su estado original en pantalla
+                    elementosAOcultar.forEach(el => {
+                        el.style.display = el.dataset.originalDisplay || "";
+                    });
+                    // 🆕 3. Restauramos los bordes y sombras del diseño web
+                    elementoFactura.className = clasesOriginales;
+                })
+                .catch(err => {
+                    console.error("Error al generar el PDF:", err);
+                    // Si falla, nos aseguramos de restaurar la pantalla igualmente
+                    elementosAOcultar.forEach(el => {
+                        el.style.display = el.dataset.originalDisplay || "";
+                    });
+                    // 🆕 3. Restauramos los bordes y sombras del diseño web
+                    elementoFactura.className = clasesOriginales;
+                });
+        };
     }
 
     const clienteId = filtro ? (filtro.cliente_id || filtro.id || filtro.filtrarClienteId) : null;
@@ -38,8 +116,10 @@ export async function inicializar(filtro) {
 async function cargarFacturasServidor(clienteId = null) {
     try {
         let url = `${API_URL}/facturacion/facturas/detallados`;
+        
+        // CORRECCIÓN: Cambiamos 'cliente_id' por 'numerocliente' para que FastAPI entienda el filtro
         if (clienteId) {
-            url += `?cliente_id=${clienteId}`;
+            url += `?numerocliente=${clienteId}`; 
         }
 
         const r = await fetch(url, {
@@ -48,6 +128,13 @@ async function cargarFacturasServidor(clienteId = null) {
 
         if (r.ok) {
             todasFacturas = await r.json();
+            
+            // FILTRO EXTRA DE SEGURIDAD EN FRONTEND:
+            // Por si acaso el backend devuelve todas las facturas ignorando el query parameter,
+            // nos aseguramos de filtrar en local usando el campo real 'numerocliente'
+            if (clienteId) {
+                todasFacturas = todasFacturas.filter(f => String(f.numerocliente) === String(clienteId));
+            }
         } else {
             todasFacturas = [];
         }
@@ -154,7 +241,7 @@ function calcularYRenderizarConceptosPDF() {
             <td class="p-2.5 text-right font-mono">${pr.toFixed(2)} €</td>
             <td class="p-2.5 text-right font-mono text-rose-600 font-semibold">${desc > 0 ? desc + ' %' : '0 %'}</td>
             <td class="p-2.5 text-right font-mono font-bold">${subtotal.toFixed(2)} €</td>
-            <td class="p-2.5 text-center">
+            <td class="columna-accion p-2.5 text-center">
                 <button class="text-rose-600 font-bold hover:underline">Eliminar</button>
             </td>
         `;
