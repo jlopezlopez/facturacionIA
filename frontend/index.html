@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carpintería Metálica - Gestión ERP</title>
+    <title>ERP - Talleres Moreno SCP</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col">
@@ -11,7 +11,7 @@
     <div id="vista-login" class="flex items-center justify-center min-h-screen px-4">
         <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full border border-slate-200">
             <div class="text-center mb-6">
-                <h2 class="text-2xl font-bold text-slate-800">Carpintería Metálica</h2>
+                <h2 class="text-2xl font-bold text-slate-800">Talleres Moreno</h2>
                 <p class="text-slate-500 text-sm mt-1">Acceso al panel de facturación</p>
             </div>
             <form id="form-login" class="space-y-4">
@@ -32,17 +32,17 @@
         
         <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shadow-xl">
             <div>
-                <div class="p-5 bg-slate-950 text-white font-bold text-lg tracking-wide border-b border-slate-800">
+                <div class="p-5 bg-slate-950 text-white font-bold text-lg border-b border-slate-800">
                     🛠️ Taller Metalúrgico
                 </div>
                 <nav class="p-4 space-y-2">
-                    <button onclick="cambiarPestana('clientes')" id="nav-clientes" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition bg-slate-800 text-white">
+                    <button onclick="navegarA('clientes')" id="nav-clientes" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
                         👥 Fichas de Clientes
                     </button>
-                    <button onclick="cambiarPestana('presupuestos')" id="nav-presupuestos" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition hover:bg-slate-800 hover:text-white">
+                    <button onclick="navegarA('presupuestos')" id="nav-presupuestos" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
                         📋 Presupuestos / Obras
                     </button>
-                    <button onclick="cambiarPestana('facturas')" id="nav-facturas" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition hover:bg-slate-800 hover:text-white">
+                    <button onclick="navegarA('facturas')" id="nav-facturas" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
                         💵 Facturas Emitidas
                     </button>
                 </nav>
@@ -55,128 +55,120 @@
 
         <main class="flex-1 p-8 overflow-y-auto">
             
-            <section id="sec-clientes" class="space-y-6">
+            <section id="mod-view-clientes" class="hidden space-y-6">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h2 class="text-2xl font-bold text-slate-800">Clientes del Taller</h2>
-                        <p class="text-slate-500 text-xs">Fichas técnicas completas con sincronización de base de datos de 11 columnas</p>
+                        <h2 class="text-2xl font-bold text-slate-800">Fichas de Clientes</h2>
+                        <p class="text-slate-500 text-xs">Usa las cabeceras ID o Razón Social para ordenar la base de datos de 11 columnas</p>
                     </div>
                     <button id="btn-nuevo-cliente" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg shadow">➕ Nuevo Cliente</button>
                 </div>
-
                 <div class="bg-white rounded-xl shadow border overflow-hidden">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-slate-50 border-b font-semibold text-slate-700 select-none">
                             <tr>
-                                <th onclick="ordenarPor('id')" class="p-3 cursor-pointer hover:bg-slate-100 transition text-blue-900">ID ⇅</th>
-                                <th onclick="ordenarPor('razonsocial')" class="p-3 cursor-pointer hover:bg-slate-100 transition text-blue-900">Razón Social ⇅</th>
-                                <th onclick="ordenarPor('NIF')" class="p-3 cursor-pointer hover:bg-slate-100 transition text-blue-900">NIF ⇅</th>
+                                <th id="th-id" class="p-3 cursor-pointer hover:bg-slate-100 text-blue-900 transition">ID ⇅</th>
+                                <th id="th-razon" class="p-3 cursor-pointer hover:bg-slate-100 text-blue-900 transition">Razón Social ⇅</th>
+                                <th class="p-3">NIF</th>
                                 <th class="p-3">Teléfono</th>
-                                <th class="p-3">Dirección Completa (Ubicación) (CP)</th>
+                                <th class="p-3">Dirección Completa</th>
                                 <th class="p-3">Observaciones</th>
+                                <th class="p-3 text-center bg-slate-100/50">Ver Historial</th>
                                 <th class="p-3 text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tbody-clientes" class="divide-y text-slate-600"></tbody>
                     </table>
                 </div>
+            </section>
 
-                <div id="seccion-historial" class="hidden bg-white rounded-xl shadow border p-6 space-y-4">
-                    <div class="flex justify-between items-center border-b pb-3">
-                        <h3 id="historial-titulo" class="text-base font-bold text-slate-800">Documentos del Cliente</h3>
-                        <button onclick="document.getElementById('seccion-historial').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <section id="mod-view-facturas" class="hidden space-y-6">
+                
+            </section>
+
+            <section id="mod-view-presupuestos" class="hidden space-y-6">
+                <div id="presupuestos-sub-lista" class="space-y-4">
+                    <div class="flex justify-between items-center">
                         <div>
-                            <h4 class="font-semibold text-amber-700 text-xs mb-2">📋 Presupuestos Emitidos</h4>
-                            <div class="border rounded-lg overflow-hidden bg-slate-50">
-                                <table class="w-full text-left text-xs">
-                                    <thead class="bg-slate-100 text-slate-600 font-semibold">
-                                        <tr><th class="p-2">Número</th><th class="p-2">Fecha</th><th class="p-2">Total</th><th class="p-2">Estado</th></tr>
-                                    </thead>
-                                    <tbody id="historial-presupuestos" class="divide-y divide-slate-200 bg-white"></tbody>
-                                </table>
-                            </div>
+                            <h2 id="titulo-modulo-presupuestos" class="text-2xl font-bold text-slate-800">Historial de Presupuestos / Ofertas</h2>
+                            <p class="text-slate-500 text-xs">Selecciona un presupuesto para ver materiales o pasarlo a ejecución</p>
                         </div>
-                        <div>
-                            <h4 class="font-semibold text-blue-700 text-xs mb-2">💵 Facturas Emitidas</h4>
-                            <div class="border rounded-lg overflow-hidden bg-slate-50">
-                                <table class="w-full text-left text-xs">
-                                    <thead class="bg-slate-100 text-slate-600 font-semibold">
-                                        <tr><th class="p-2">Número</th><th class="p-2">Fecha</th><th class="p-2">Total</th><th class="p-2">Estado</th></tr>
-                                    </thead>
-                                    <tbody id="historial-facturas" class="divide-y divide-slate-200 bg-white"></tbody>
-                                </table>
+                        <button onclick="navegarA('clientes')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg">← Volver a Clientes</button>
+                    </div>
+                    <div class="bg-white rounded-xl shadow border overflow-hidden">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 border-b font-semibold text-slate-700">
+                                <tr><th>Nº Presupuesto</th><th>Fecha</th><th>Cliente / Razón Social</th><th>NIF</th><th>Estado</th><th class="text-right p-3">Total Estimado</th></tr>
+                            </thead>
+                            <tbody id="tbody-presupuestos-lista" class="divide-y text-slate-600 cursor-pointer"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="presupuestos-sub-detalle" class="hidden space-y-4">
+                    <div class="flex justify-between items-center bg-slate-200 p-3 rounded-lg border">
+                        <button onclick="cerrarDetallePresupuesto()" class="bg-slate-700 text-white text-xs px-3 py-1.5 rounded shadow hover:bg-slate-600">← Volver al Listado</button>
+                        <div class="flex items-center gap-3">
+                            <button id="btn-guardar-cambios-presupuesto" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-4 py-1.5 rounded font-bold shadow">💾 Guardar Cambios Presupuesto</button>
+                        </div>
+                    </div>
+                    <div class="bg-white max-w-3xl mx-auto p-12 rounded-lg shadow-xl border font-serif text-slate-800">
+                        <div class="flex justify-between border-b-2 border-amber-600 pb-4 mb-4 font-sans">
+                            <div><h1 class="text-2xl font-black text-slate-900">PRESUPUESTO TÉCNICO</h1><p class="text-xs text-slate-500 mt-0.5">Estudios y Mediciones de Obra</p></div>
+                            <div class="text-right"><h3 id="pres-numero" class="text-lg font-bold text-slate-900">Nº: ---</h3><p id="pres-fecha" class="text-xs text-slate-400">--/--/----</p></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mb-6 font-sans text-xs bg-slate-50 p-3 rounded border">
+                            <div><span class="font-bold text-slate-400 block mb-0.5">CLIENTE SOLICITANTE:</span><p id="pres-cliente-nombre" class="font-bold text-slate-900 text-sm">---</p><p id="pres-cliente-nif" class="font-mono mt-0.5">NIF: ---</p></div>
+                            <div><span class="font-bold text-slate-400 block mb-0.5">DIRECCIÓN PREVISTA DE OBRA:</span><p id="pres-cliente-direccion" class="italic text-slate-700">---</p></div>
+                        </div>
+                        <table class="w-full text-left text-xs font-sans border-collapse">
+                            <thead class="bg-slate-100 font-bold border-b border-slate-300 text-slate-700">
+                                <tr><th class="p-2">Línea de Medición / Unidad de Trabajo</th><th class="text-right p-2 w-16">Cant.</th><th class="text-right p-2 w-24">Precio Un.</th><th class="text-right p-2 w-24">Subtotal</th><th class="text-center p-2 w-16">Acción</th></tr>
+                            </thead>
+                            <tbody id="pres-tbody-conceptos" class="divide-y text-slate-600"></tbody>
+                        </table>
+                        <div class="bg-amber-50/50 p-2 flex gap-2 border-t border-b items-center mt-2 font-sans">
+                            <input type="text" id="pres-nuevo-desc" placeholder="Añadir partida de obra..." class="flex-1 p-1 text-xs border rounded bg-white">
+                            <input type="number" id="pres-nuevo-cant" value="1" class="w-12 p-1 text-xs border rounded bg-white text-right">
+                            <input type="number" id="pres-nuevo-precio" placeholder="Precio €" class="w-20 p-1 text-xs border rounded bg-white text-right">
+                            <button id="pres-btn-add-concepto" type="button" class="bg-amber-600 text-white text-xs px-2.5 py-1 rounded font-bold hover:bg-amber-700">➕</button>
+                        </div>
+                        <div class="mt-6 flex justify-end font-sans">
+                            <div class="w-64 text-xs bg-slate-50 p-3 rounded border border-slate-200 space-y-1.5">
+                                <div class="flex justify-between text-slate-600"><span>Base Presupuesto:</span><span id="pres-calculo-base" class="font-mono">0.00 €</span></div>
+                                <div class="flex justify-between text-slate-600 border-b pb-1.5"><span>I.V.A. Estimado (21%):</span><span id="pres-calculo-iva" class="font-mono">0.00 €</span></div>
+                                <div class="flex justify-between font-bold text-sm text-amber-700 pt-0.5"><span>Total Estimado:</span><span id="pres-calculo-total" class="font-mono text-base">0.00 €</span></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
-
-            <section id="sec-presupuestos" class="hidden text-slate-400 text-sm italic">Panel de presupuestos activo.</section>
-            <section id="sec-facturas" class="hidden text-slate-400 text-sm italic">Panel de facturación activo.</section>
         </main>
     </div>
 
     <div id="modal-cliente" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 max-h-[95vh] overflow-y-auto">
+        <div class="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 max-h-[95vh] overflow-y-auto shadow-2xl">
             <h3 id="modal-cliente-titulo" class="font-bold border-b pb-2 text-slate-800 text-lg">Ficha de Cliente</h3>
             <form id="form-cliente" class="space-y-3">
                 <input type="hidden" id="cliente-id-input">
-                
                 <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Razón Social *</label>
-                        <input type="text" id="c-razonsocial" required class="w-full p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">NIF / CIF *</label>
-                        <input type="text" id="c-NIF" required class="w-full p-2 border rounded text-sm font-mono focus:ring-1 focus:ring-blue-500">
-                    </div>
+                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Razón Social *</label><input type="text" id="c-razonsocial" required class="w-full p-2 border rounded text-sm"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">NIF / CIF *</label><input type="text" id="c-nif" required class="w-full p-2 border rounded text-sm font-mono"></div>
                 </div>
-
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Teléfono de Contacto</label>
-                    <input type="text" id="c-telefono" class="w-full p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500">
-                </div>
-
+                <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Teléfono de Contacto</label><input type="text" id="c-telefono" class="w-full p-2 border rounded text-sm"></div>
                 <div class="grid grid-cols-4 gap-2">
-                    <div class="col-span-2">
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Dirección / Calle</label>
-                        <input type="text" id="c-calle" class="w-full p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Número</label>
-                        <input type="text" id="c-numero" class="w-full p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Piso / Puerta</label>
-                        <input type="text" id="c-piso" class="w-full p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500">
-                    </div>
+                    <div class="col-span-2"><label class="block text-[10px] font-bold text-slate-500 uppercase">Dirección / Calle</label><input type="text" id="c-calle" class="w-full p-2 border rounded text-sm"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Número</label><input type="text" id="c-numero" class="w-full p-2 border rounded text-sm"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Piso / Puerta</label><input type="text" id="c-piso" class="w-full p-2 border rounded text-sm"></div>
                 </div>
-
                 <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Población</label>
-                        <input type="text" id="c-poblacion" class="w-full p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Provincia</label>
-                        <input type="text" id="c-provincia" class="w-full p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Cód. Postal (CP)</label>
-                        <input type="text" id="c-cp" class="w-full p-2 border rounded text-sm font-mono focus:ring-1 focus:ring-blue-500">
-                    </div>
+                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Población</label><input type="text" id="c-poblacion" class="w-full p-2 border rounded text-sm"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Provincia</label><input type="text" id="c-provincia" class="w-full p-2 border rounded text-sm"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Cód. Postal (CP)</label><input type="text" id="c-cp" class="w-full p-2 border rounded text-sm font-mono"></div>
                 </div>
-
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Observaciones Técnicas</label>
-                    <textarea id="c-observaciones" rows="3" class="w-full p-2 border rounded text-sm text-slate-700 bg-slate-50 focus:ring-1 focus:ring-blue-500"></textarea>
-                </div>
-
+                <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Observaciones Técnicas</label><textarea id="c-observaciones" rows="3" class="w-full p-2 border rounded text-sm text-slate-700 bg-slate-50"></textarea></div>
                 <div class="flex gap-2 pt-2">
-                    <button type="button" onclick="document.getElementById('modal-cliente').classList.add('hidden')" class="w-full p-2 bg-slate-100 text-slate-700 rounded text-sm font-medium">Cancelar</button>
+                    <button type="button" onclick="document.getElementById('modal-cliente').classList.add('hidden')" class="w-full p-2 bg-slate-100 rounded text-sm font-medium">Cancelar</button>
                     <button type="submit" class="w-full p-2 bg-blue-900 text-white rounded text-sm font-semibold hover:bg-blue-800">Guardar Ficha</button>
                 </div>
             </form>

@@ -5,6 +5,8 @@ from app.schemas.facturacion import FacturaCreate, FacturaResponse, PresupuestoC
 from app.utils.pdf_generator import generar_pdf_documento
 from datetime import date
 from app.auth.dependencies import obtener_usuario_actual
+from pydantic import BaseModel
+from typing import List
 
 router = APIRouter(prefix="/facturacion", tags=["Facturas y Presupuestos"])
 
@@ -264,3 +266,152 @@ def obtener_facturas_detallados(usuario_actual: dict = Depends(obtener_usuario_a
                 "razonsocial": f[5], "NIF": f[6], "numerocliente": f[7]
             } for f in filas]
         
+
+# ==========================================
+# 8. OBTENER DETALLE DE UNA FACTURA INDIVIDUAL (CON CONCEPTOS)
+# ==========================================
+@router.get("/facturas/{factura_id}")
+def obtener_detalle_factura(factura_id: int, usuario_actual: dict = Depends(obtener_usuario_actual)):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # 1. Buscar cabecera y datos de cliente
+                query = """
+                    SELECT f.id, f.numerofactura, f.fecha, f.pagado, f.iva, 
+                           c.razonsocial, c.NIF, c.calle, c.numero, c.poblacion
+                    FROM factura f
+                    INNER JOIN cliente c ON f.numerocliente = c.id
+                    WHERE f.id = %s;
+                """
+                cursor.execute(query, (factura_id,))
+                res = cursor.fetchone()
+                if not res:
+                    raise HTTPException(status_code=404, detail="Factura no encontrada")
+                
+                # 2. Buscar conceptos vinculados
+                cursor.execute(
+                    "SELECT descripcion, cantidad, preciounidad, descuento FROM conceptofactura WHERE idfactura = %s ORDER BY numeroconcepto ASC;",
+                    (factura_id,)
+                )
+                conceptos_filas = cursor.fetchall()
+                conceptos = [
+                    {"descripcion": f[0], "cantidad": float(f[1]), "precio_unitario": float(f[2]), "descuento": float(f[3])}
+                    for f in conceptos_filas
+                ]
+                
+                return {
+                    "id": res[0], "numero": res[1], "fecha": str(res[2]), "pagada": res[3], "iva": float(res[4]),
+                    "razonsocial": res[5], "NIF": res[6], "calle": res[7], "cliente_numero": res[8], "poblacion": res[9],
+                    "conceptos": conceptos
+                }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al recuperar la factura: {str(e)}")
+
+
+# ==========================================
+# 9. OBTENER DETALLE DE UN PRESUPUESTO INDIVIDUAL (CON CONCEPTOS)
+# ==========================================
+@router.get("/presupuestos/{presupuesto_id}")
+def obtener_detalle_presupuesto(presupuesto_id: int, usuario_actual: dict = Depends(obtener_usuario_actual)):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # 1. Buscar cabecera y datos de cliente
+                query = """
+                    SELECT p.id, p.numeropresupuesto, p.fecha, p.aceptado, p.iva, 
+                           c.razonsocial, c.NIF, c.calle, c.numero, c.poblacion
+                    FROM presupuesto p
+                    INNER JOIN cliente c ON p.numerocliente = c.id
+                    WHERE p.id = %s;
+                """
+                cursor.execute(query, (presupuesto_id,))
+                res = cursor.fetchone()
+                if not res:
+                    raise HTTPException(status_code=404, detail="Presupuesto no encontrado")
+                
+                # 2. Buscar conceptos vinculados
+                cursor.execute(
+                    "SELECT descripcion, cantidad, preciounidad, descuento FROM conceptopresupuesto WHERE idpresupuesto = %s ORDER BY numeroconpresup ASC;",
+                    (presupuesto_id,)
+                )
+                conceptos_filas = cursor.fetchall()
+                conceptos = [
+                    {"descripcion": f[0], "cantidad": float(f[1]), "precio_unitario": float(f[2]), "descuento": float(f[3])}
+                    for f in conceptos_filas
+                ]
+                
+                return {
+                    "id": res[0], "numero": res[1], "fecha": str(res[2]), "aceptado": res[3], "iva": float(res[4]),
+                    "razonsocial": res[5], "NIF": res[6], "calle": res[7], "cliente_numero": res[8], "poblacion": res[9],
+                    "conceptos": conceptos
+                }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al recuperar el presupuesto: {str(e)}")
+    
+    # ==========================================
+# NUEVO: ESQUEMAS PARA LA ACTUALIZACIÓN DE FACTURA
+# ==========================================
+class ConceptoFacturaUpdate(BaseModel):
+    descripcion: str
+    cantidad: float
+    precio_unitario: float
+    descuento: float
+
+class FacturaUpdate(BaseModel):
+    pagada: bool
+    conceptos: List[ConceptoFacturaUpdate]
+
+
+# ==========================================
+# NUEVO: 8B. ACTUALIZAR ESTADO Y CONCEPTOS DE FACTURA
+# ==========================================
+@router.put("/facturas/{factura_id}", status_code=status.HTTP_200_OK)
+def actualizar_factura(
+    factura_id: int, 
+    payload: FacturaUpdate, 
+    usuario_actual: dict = Depends(obtener_usuario_actual)
+):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # 1. Comprobar si la factura existe
+                cursor.execute("SELECT id FROM factura WHERE id = %s;", (factura_id,))
+                if not cursor.fetchone():
+                    raise HTTPException(status_code=404, detail="Factura no encontrada")
+
+                # 2. Actualizar la propiedad "pagado" en la cabecera
+                cursor.execute(
+                    "UPDATE factura SET pagado = %s WHERE id = %s;",
+                    (payload.pagada, factura_id)
+                )
+
+                # 3. Eliminar los conceptos antiguos vinculados
+                cursor.execute(
+                    "DELETE FROM conceptofactura WHERE idfactura = %s;",
+                    (factura_id,)
+                )
+
+                # 4. Insertar los nuevos conceptos actualizados
+                # Usaremos un autoincremento para 'numeroconcepto' partiendo de 1
+                for index, c in enumerate(payload.conceptos, start=1):
+                    cursor.execute(
+                        """INSERT INTO conceptofactura (numeroconcepto, idfactura, descripcion, cantidad, preciounidad, descuento)
+                           VALUES (%s, %s, %s, %s, %s, %s);""",
+                        (index, factura_id, c.descripcion, c.cantidad, c.precio_unitario, c.descuento)
+                    )
+
+                # Confirmar toda la transacción de manera segura
+                conn.commit()
+                
+                return {
+                    "status": "éxito",
+                    "mensaje": f"Factura {factura_id} y sus conceptos actualizados correctamente."
+                }
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al actualizar la factura en el servidor: {str(e)}"
+        )
