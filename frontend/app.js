@@ -67,6 +67,7 @@ async function navegarA(seccion, parametros = null) {
 async function inicializarModuloClientes() {
     document.getElementById("th-id").onclick = () => alternarOrdenClientes("id");
     document.getElementById("th-razon").onclick = () => alternarOrdenClientes("razonsocial");
+    document.getElementById("th-nif").onclick = () => alternarOrdenClientes("NIF");
     document.getElementById("btn-nuevo-cliente").onclick = () => abrirModalAltaCliente();
     document.getElementById("form-cliente").onsubmit = (e) => guardarFichaClienteServidor(e);
     

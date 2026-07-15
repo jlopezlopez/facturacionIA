@@ -7,16 +7,30 @@
                 <p id="subtitulo-filtro" class="text-slate-500 text-xs">Haga clic en una fila para ver el desglose o
                     editar conceptos de la factura</p>
             </div>
-            <button onclick="window.navegarA('clientes')"
-                class="bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg">← Volver a Clientes</button>
+            <div class="flex gap-2">
+                <button id="btn-nueva-factura-cliente"
+                    class="bg-blue-400 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm transition flex items-center gap-1">
+                    <span>➕ Nueva Factura</span>
+                </button>
+                <button onclick="window.navegarA('clientes')"
+                    class="bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg">← Volver a
+                    Clientes</button>
+            </div>
         </div>
 
         <div class="bg-white rounded-xl shadow border overflow-hidden">
             <table class="w-full text-left text-sm">
                 <thead class="bg-slate-50 border-b font-semibold text-slate-700">
-                    <tr>
-                        <th class="p-3">Nº Factura</th>
-                        <th class="p-3">Fecha Emisión</th>
+                    <tr><!-- Cabecera de Nº Factura -->
+                        <th onclick="alternarOrdenFacturas('numero')" class="cursor-pointer hover:bg-slate-100 p-3 select-none">
+                            Nº Factura <span class="text-slate-400">⇅</span>
+                        </th>
+
+                        <!-- Cabecera de Fecha Emisión -->
+                        <th onclick="alternarOrdenFacturas('fecha')" class="cursor-pointer hover:bg-slate-100 p-3 select-none">
+                            Fecha Emisión <span class="text-slate-400">⇅</span>
+                        </th>
+                        
                         <th class="p-3">Cliente / Empresa</th>
                         <th class="p-3">Estado Cobro</th>
                         <th class="p-3 text-right">Importe Total</th>
@@ -44,9 +58,9 @@
                     Guardar Cambios Factura</button>
 
                 <button id="btn-imprimir-pdf"
-                class="bg-blue-900 text-white text-xs font-bold px-4 py-2 rounded shadow hover:bg-blue-800 flex items-center gap-1">
-                🖨️ Imprimir / PDF
-            </button>
+                    class="bg-blue-900 text-white text-xs font-bold px-4 py-2 rounded shadow hover:bg-blue-800 flex items-center gap-1">
+                    🖨️ Imprimir / PDF
+                </button>
 
             </div>
         </div>
@@ -133,5 +147,57 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Modal para Nueva Factura (Oculto por defecto) -->
+<div id="modal-nueva-factura" class="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden border border-slate-100">
+        <!-- Cabecera del Modal -->
+        <div class="bg-slate-800 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="font-bold text-lg">Nueva Factura</h3>
+            <button id="btn-cerrar-modal" class="text-slate-300 hover:text-white text-xl font-bold">&times;</button>
+        </div>
+        
+        <!-- Formulario -->
+        <form id="form-nueva-factura" class="p-6 space-y-4">
+            <!-- Número de Factura -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Número de Factura</label>
+                <input type="text" id="modal-num-factura" required
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm font-semibold">
+            </div>
+
+            <!-- Fecha -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha de Emisión</label>
+                <input type="date" id="modal-fecha" required
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm">
+            </div>
+
+            <!-- IVA -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">I.V.A. (%)</label>
+                <select id="modal-iva" required
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm">
+                    <option value="21" selected>21 % (General)</option>
+                    <option value="10">10 % (Reducido)</option>
+                    <option value="4">4 % (Superreducido)</option>
+                    <option value="0">0 % (Exento)</option>
+                </select>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex gap-3 justify-end pt-4 border-t border-slate-100">
+                <button type="button" id="btn-cancelar-factura"
+                    class="px-4 py-2 bg-slate-150 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-lg transition">
+                    Cancelar
+                </button>
+                <button type="submit"
+                    class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition shadow-md">
+                    Crear Factura
+                </button>
+            </div>
+        </form>
     </div>
 </div>

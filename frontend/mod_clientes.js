@@ -1,3 +1,5 @@
+const API_URL = "http://127.0.0.1:8000";
+
 const ModuloClientes = {
     listaClientes: [],
     campoOrden: "id",
@@ -6,6 +8,7 @@ const ModuloClientes = {
     async inicializar() {
         document.getElementById("th-id").onclick = () => this.cambiarOrden("id");
         document.getElementById("th-razon").onclick = () => this.cambiarOrden("razonsocial");
+        document.getElementById("th-nif").onclick = () => this.cambiarOrden("NIF");
         document.getElementById("btn-nuevo-cliente").onclick = () => this.abrirModalAlta();
         document.getElementById("form-cliente").onsubmit = (e) => this.guardarFichaFormulario(e);
         await this.cargarClientesServidor();
@@ -13,7 +16,7 @@ const ModuloClientes = {
 
     async cargarClientesServidor() {
         try {
-            const r = await fetch("http://127.0.0.1:8000/clientes/", {
+            const r = await fetch("${API_URL}/clientes/", {
                 headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
             });
             this.listaClientes = await r.json();
@@ -126,7 +129,7 @@ renderizarTabla() {
             observaciones: document.getElementById("c-observaciones").value.trim() || null
         };
 
-        const url = id ? `http://127.0.0.1:8000/clientes/${id}` : `http://127.0.0.1:8000/clientes/`;
+        const url = id ? `${API_URL}/clientes/${id}` : `${API_URL}/clientes/`;
         const method = id ? "PUT" : "POST";
 
         try {

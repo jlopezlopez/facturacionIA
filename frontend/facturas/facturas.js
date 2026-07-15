@@ -4,11 +4,15 @@ let todasFacturas = [];
 let facturaSeleccionada = null;
 let conceptosFactura = [];
 
+// 🆕 NUEVO: Variables para controlar el orden de las facturas
+let facturaCampoOrden = "fecha";      // Ordenación por defecto inicial
+let facturaDireccionOrden = "desc";   // Dirección por defecto inicial (más recientes primero)
+
 // Función de entrada que invoca el enrutador central de app.js
 export async function inicializar(filtro) {
     document.getElementById("btn-volver-listado").onclick = () => mostrarOcultarVistas(true);
     document.getElementById("pdf-btn-add-concepto").onclick = agregarConceptoLinea;
-    
+
     // Forzamos a que limpie cualquier onclick previo de app.js y asigne el correcto:
     const btnGuardar = document.getElementById("btn-guardar-cambios-factura");
     if (btnGuardar) {
@@ -19,82 +23,126 @@ export async function inicializar(filtro) {
     const btnPdf = document.getElementById("btn-imprimir-pdf");
     if (btnPdf) {
         btnPdf.onclick = () => {
-            // 1. Seleccionamos el folio blanco de la factura
-            const elementoFactura = document.getElementById("sub-vista-detalle");
-
-            if (!elementoFactura) {
-                alert("No se encontró el contenedor de la factura.");
+            if (!facturaSeleccionada) {
+                alert("No hay datos de factura para imprimir.");
                 return;
             }
 
-            // 🆕 1. Guardamos las clases originales del contenedor para no perder su diseño web
-            const clasesOriginales = elementoFactura.className;
-            
-            // 🆕 2. Le quitamos cualquier borde, redondeo o sombra (Tailwind)
-            elementoFactura.classList.remove(
-                "border", "border-gray-200", "border-slate-200", 
-                "rounded", "rounded-md", "rounded-lg", "rounded-xl", 
-                "shadow", "shadow-md", "shadow-sm"
-            );
+            // 1. Calculamos los totales
+            let baseImponible = 0;
+            let filasConceptosHtml = "";
 
-            // 2. Ocultamos temporalmente los botones de control y el formulario de añadir conceptos
-            const selectoresOcultar = [
-                "#btn-volver-listado",
-                "#btn-imprimir-pdf",
-                "#btn-guardar-cambios-factura",
-                "#pdf-btn-add-concepto",
-                // Si tienes la zona de agregar conceptos envuelta en un contenedor, puedes ocultarlo entero:
-                ".no-print", 
-                "input[type='text']", 
-                "input[type='number']",
-                // OCULTAMOS LA COLUMNA DE ACCIÓN EN CABECERA Y FILAS:
-                ".columna-accion",
-                ".factura-pagada",
-                // OCULTAMOS EL CHECKBOX DE PAGADO (Y subimos al contenedor gris que lo envuelve):
-                "#check-factura-pagada"
-            ];
-            
-            // Buscamos y aplicamos un display: none temporal
-            const elementosAOcultar = elementoFactura.querySelectorAll(selectoresOcultar.join(", "));
-            elementosAOcultar.forEach(el => {
-                el.dataset.originalDisplay = el.style.display; // Guardamos el estado original
-                el.style.setProperty("display", "none", "important");
+            conceptosFactura.forEach((c, index) => {
+                const cant = parseFloat(c.cantidad || 0);
+                const pr = parseFloat(c.precio_unitario || c.preciounidad || c.precio || 0);
+                const desc = parseFloat(c.descuento || 0);
+                const subtotal = (cant * pr) * (1 - (desc / 100));
+                baseImponible += subtotal;
+
+                filasConceptosHtml += `
+                    <tr style="border-bottom: 1px solid #e2e8f0; font-size: 13px;">
+                        <td style="padding: 10px 5px; text-align: left; color: #334155;">${index + 1}</td>
+                        <td style="padding: 10px 5px; text-align: left; font-weight: 500; color: #1e293b;">${c.descripcion}</td>
+                        <td style="padding: 10px 5px; text-align: right; color: #334155;">${cant.toFixed(1)}</td>
+                        <td style="padding: 10px 5px; text-align: right; color: #334155;">${pr.toFixed(2)} €</td>
+                        <td style="padding: 10px 5px; text-align: right; color: #334155; ">${desc > 0 ? desc + '%' : '0%'}</td>
+                        <td style="padding: 10px 5px; text-align: right; font-weight: 700; color: #0f172a;">${subtotal.toFixed(2)} €</td>
+                    </tr>
+                `;
             });
 
-            // 3. Ajustes de diseño para que el PDF luzca impecable en papel virtual DIN A4
+            const porcentajeIva = parseFloat(facturaSeleccionada.iva || 21);
+            const totalIva = baseImponible * (porcentajeIva / 100);
+            const totalFactura = baseImponible + totalIva;
+
+            // 2. Creamos la estructura HTML en una variable de texto (sin meterla en el documento)
+            const htmlFacturaClasica = `
+                <div style="width: 690px; background: white; color: #000000; padding: 20px; font-family: system-ui, -apple-system, sans-serif;">
+                    <!-- Cabecera de la factura -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #cbd5e1; padding-bottom: 20px; margin-bottom: 25px;">
+                        <!-- Bloque izquierdo: Tus Datos -->
+                        <div style="font-size: 13px; line-height: 1.5; color: #1e293b; text-align: left;">
+                            <h3 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Talleres Moreno SCP</h3>
+                            <p style="margin: 2px 0;">Polígono Industrial Metalúrgico, Nave 14</p>
+                            <p style="margin: 2px 0;">Añora, Córdoba</p>
+                            <p style="margin: 2px 0;"><span style="font-weight: 600;">CIF:</span> B12345678</p>
+                            <p style="margin: 2px 0;"><span style="font-weight: 600;">Teléfono:</span> +34 600 000 000</p>
+                            <p style="margin: 2px 0;"><span style="font-weight: 600;">Email:</span> info@tu-taller.com</p>
+                        </div>
+
+                        <!-- Bloque derecho: Título y Números -->
+                        <div style="text-align: right;">
+                            <h1 style="margin: 0 0 10px 0; font-size: 24px; font-weight: 900; text-transform: uppercase; color: #0f172a; letter-spacing: 1px;">Factura</h1>
+                            <p style="margin: 2px 0; font-size: 15px; font-weight: 700; color: #0f172a;">Número: ${facturaSeleccionada.numero}</p>
+                            <p style="margin: 4px 0 0 0; font-size: 15px; font-weight: 600; color: #475569;">Fecha: ${facturaSeleccionada.fecha || '---'}</p>
+                        </div>
+                    </div>
+
+                    <!-- Datos del Cliente -->
+                    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 15px; margin-bottom: 30px; font-size: 13px; line-height: 1.6; color: #334155; text-align: left;">
+                        <h3 style="margin: 0 0 8px 0; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #0f172a; letter-spacing: 0.5px;">Cliente:</h3>
+                        <p style="margin: 3px 0;"><span style="font-weight: 700; color: #0f172a;">Razón Social:</span> ${facturaSeleccionada.razonsocial || '---'}</p>
+                        <p style="margin: 3px 0;"><span style="font-weight: 700; color: #0f172a;">NIF/DNI:</span> ${facturaSeleccionada.NIF || facturaSeleccionada.cliente_nif || '---'}</p>
+                        <p style="margin: 3px 0;"><span style="font-weight: 700; color: #0f172a;">Dirección:</span> ${[facturaSeleccionada.calle, facturaSeleccionada.cliente_numero, facturaSeleccionada.poblacion].filter(Boolean).join(" ") || '---'}</p>
+                    </div>
+
+                    <!-- Tabla de Conceptos (Estilo Clásico) -->
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                        <thead>
+                            <tr style="background-color: #1e3a8a; color: white; font-size: 12px; text-transform: uppercase; font-weight: 700;">
+                                <th style="padding: 10px 5px; text-align: left; width: 6%;">Item</th>
+                                <th style="padding: 10px 5px; text-align: left; width: 50%;">Descripción</th>
+                                <th style="padding: 10px 5px; text-align: right; width: 10%;">Cant.</th>
+                                <th style="padding: 10px 5px; text-align: right; width: 14%;">Precio U.</th>
+                                <th style="padding: 10px 5px; text-align: right; width: 10%;">Dto. %</th>
+                                <th style="padding: 10px 5px; text-align: right; width: 10%;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filasConceptosHtml}
+                        </tbody>
+                    </table>
+
+                    <!-- Bloque de Totales -->
+                    <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                        <div style="width: 40%; font-size: 13px; line-height: 1.8; color: #1e293b;">
+                            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding: 4px 0;">
+                                <span>Base Imponible:</span>
+                                <span style="font-weight: 600; font-family: monospace;">${baseImponible.toFixed(2)} €</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding: 4px 0;">
+                                <span>I.V.A. (${porcentajeIva}%):</span>
+                                <span style="font-weight: 600; font-family: monospace;">${totalIva.toFixed(2)} €</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 16px; font-weight: 800; color: #0f172a;">
+                                <span>TOTAL:</span>
+                                <span style="font-family: monospace;">${totalFactura.toFixed(2)} €</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 3. Configuración del PDF
             const opciones = {
-                margin:       5, // Márgenes limpios de 10mm alrededor de la factura
-                filename:     `Factura_${facturaSeleccionada ? facturaSeleccionada.numero : 'Taller'}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { 
-                    scale: 3,        // Multiplicador de resolución (se verá nítido incluso al hacer zoom)
-                    useCORS: true,   // Evita problemas de carga de imágenes externas si las hubiera
+                margin: 15,
+                filename: `Factura_${facturaSeleccionada.numero}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 3,
+                    useCORS: true,
                     letterRendering: true
                 },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' } // DIN A4 Vertical estándar
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            // 4. Generamos y descargamos el PDF
+            // 4. Generamos el PDF pasándole directamente la cadena HTML de la factura clásica
             html2pdf()
                 .set(opciones)
-                .from(elementoFactura)
+                .from(htmlFacturaClasica)
                 .save()
-                .then(() => {
-                    // 5. Una vez generado, devolvemos los botones e inputs a su estado original en pantalla
-                    elementosAOcultar.forEach(el => {
-                        el.style.display = el.dataset.originalDisplay || "";
-                    });
-                    // 🆕 3. Restauramos los bordes y sombras del diseño web
-                    elementoFactura.className = clasesOriginales;
-                })
                 .catch(err => {
-                    console.error("Error al generar el PDF:", err);
-                    // Si falla, nos aseguramos de restaurar la pantalla igualmente
-                    elementosAOcultar.forEach(el => {
-                        el.style.display = el.dataset.originalDisplay || "";
-                    });
-                    // 🆕 3. Restauramos los bordes y sombras del diseño web
-                    elementoFactura.className = clasesOriginales;
+                    console.error("Error al exportar PDF:", err);
                 });
         };
     }
@@ -110,16 +158,128 @@ export async function inicializar(filtro) {
     }
 
     renderizarListadoTabla();
+
+    // En facturas.js (dentro de tu función de inicialización) 
+    // Dar de alta una nueva factura para el cliente.
+
+    const btnNuevaFactura = document.getElementById("btn-nueva-factura-cliente");
+    const modal = document.getElementById("modal-nueva-factura");
+    const btnCerrar = document.getElementById("btn-cerrar-modal");
+    const btnCancelar = document.getElementById("btn-cancelar-factura");
+    const formFactura = document.getElementById("form-nueva-factura");
+
+    if (btnNuevaFactura && modal) {
+        // --- 1. ABRIR MODAL Y PROPONER VALORES ---
+        btnNuevaFactura.onclick = () => {
+            const clienteId = filtro.cliente_id; 
+            
+            if (!clienteId) {
+                alert("No se ha podido recuperar el ID del cliente.");
+                return;
+            }
+
+            // Proponer fecha actual en formato local YYYY-MM-DD
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById("modal-fecha").value = hoy;
+
+            // Proponer un número correlativo orientativo
+            const añoActual = new Date().getFullYear();
+            const sugerenciaCodigo = Date.now().toString().slice(-4);
+            document.getElementById("modal-num-factura").value = `FACT-${añoActual}-${sugerenciaCodigo}`;
+            
+            // Mostrar modal quitando la clase hidden
+            modal.classList.remove("hidden");
+        };
+
+        // --- 2. CERRAR MODAL ---
+        const cerrarModal = () => {
+            modal.classList.add("hidden");
+            formFactura.reset();
+        };
+
+        btnCerrar.onclick = cerrarModal;
+        btnCancelar.onclick = cerrarModal;
+
+        // --- 3. ENVIAR FORMULARIO AL BACKEND ---
+        formFactura.onsubmit = async (e) => {
+            e.preventDefault(); // Evitamos que la página se recargue
+
+            const clienteId = filtro.cliente_id;
+            const numFactura = document.getElementById("modal-num-factura").value.trim();
+            const fechaFactura = document.getElementById("modal-fecha").value;
+            const ivaFactura = parseFloat(document.getElementById("modal-iva").value);
+
+            if (!numFactura) {
+                alert("Por favor, introduce un número de factura válido.");
+                return;
+            }
+
+            // Construimos el JSON exacto para tu API
+            const nuevaFacturaBody = {
+                numerofactura: numFactura,
+                fecha: fechaFactura,
+                iva: ivaFactura,
+                numerocliente: parseInt(clienteId),
+                pagado: false,
+                conceptos: []
+            };
+
+            try {
+                // Recuperar el Token para la autorización
+                let token = localStorage.getItem("token");
+                
+                // Limpieza del token por si acaso se guardó con comillas
+                if (token && (token.startsWith('"') || token.startsWith("'"))) {
+                    token = JSON.parse(token); 
+                }
+
+                const response = await fetch(`${API_URL}/facturacion/facturas`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        // Nos aseguramos de enviar la cabecera de autenticación que exige FastAPI
+                        "Authorization": `Bearer ${localStorage.getItem("token_taller")}`
+                    },
+                    body: JSON.stringify(nuevaFacturaBody)
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error("Su sesión ha expirado o no está autorizado. Inicie sesión de nuevo.");
+                    }
+                    const errorDetail = await response.text();
+                    throw new Error(`Error del servidor: ${errorDetail || response.statusText}`);
+                }
+
+                const facturaCreada = await response.json();
+                alert(`Factura ${facturaCreada.numero || numFactura} creada con éxito.`);
+                
+                cerrarModal();
+
+                // Refrescar listado en pantalla
+                if (typeof inicializar === "function") {
+                    await inicializar(filtro);
+                }
+
+            } catch (error) {
+                console.error("Error al registrar la factura:", error);
+                alert("No se pudo crear la factura: " + error.message);
+            }
+        };
+    }
+
+    // Al final de tu función inicializar(filtro) en facturas.js, añade esto:
+    window.alternarOrdenFacturas = alternarOrdenFacturas;
 }
 
 // 🌐 Carga las facturas reales directamente desde el API de FastAPI
 async function cargarFacturasServidor(clienteId = null) {
     try {
         let url = `${API_URL}/facturacion/facturas/detallados`;
-        
+
         // CORRECCIÓN: Cambiamos 'cliente_id' por 'numerocliente' para que FastAPI entienda el filtro
         if (clienteId) {
-            url += `?numerocliente=${clienteId}`; 
+            url += `?numerocliente=${clienteId}`;
         }
 
         const r = await fetch(url, {
@@ -128,7 +288,7 @@ async function cargarFacturasServidor(clienteId = null) {
 
         if (r.ok) {
             todasFacturas = await r.json();
-            
+
             // FILTRO EXTRA DE SEGURIDAD EN FRONTEND:
             // Por si acaso el backend devuelve todas las facturas ignorando el query parameter,
             // nos aseguramos de filtrar en local usando el campo real 'numerocliente'
@@ -144,6 +304,17 @@ async function cargarFacturasServidor(clienteId = null) {
     }
 }
 
+// 🆕 NUEVO: Controla el clic del usuario en las cabeceras de la tabla
+export function alternarOrdenFacturas(campo) {
+    if (facturaCampoOrden === campo) {
+        facturaDireccionOrden = facturaDireccionOrden === "asc" ? "desc" : "asc";
+    } else {
+        facturaCampoOrden = campo;
+        facturaDireccionOrden = "asc"; // Al cambiar de columna, empezamos ordenando de manera ascendente
+    }
+    renderizarListadoTabla();
+}
+
 function renderizarListadoTabla() {
     const tbody = document.getElementById("tbody-facturas-lista");
     tbody.innerHTML = "";
@@ -153,11 +324,37 @@ function renderizarListadoTabla() {
         return;
     }
 
-    todasFacturas.forEach(f => {
+    // 🆕 NUEVO: Ordenar una copia del array antes de renderizar
+    let copia = [...todasFacturas];
+    copia.sort((a, b) => {
+        let valA = a[facturaCampoOrden];
+        let valB = b[facturaCampoOrden];
+
+        // Normalizar en caso de nulos o indefinidos
+        if (valA === undefined || valA === null) valA = "";
+        if (valB === undefined || valB === null) valB = "";
+
+        // Si ordenamos por fecha, hacemos una comparación de tipo fecha/tiempo
+        if (facturaCampoOrden === "fecha" && valA && valB) {
+            const dateA = new Date(valA);
+            const dateB = new Date(valB);
+            return facturaDireccionOrden === "asc" ? dateA - dateB : dateB - dateA;
+        }
+
+        // Si es una cadena de texto (ej: el número de factura "FACT-2026-001")
+        if (typeof valA === "string") valA = valA.toLowerCase();
+        if (typeof valB === "string") valB = valB.toLowerCase();
+
+        if (valA < valB) return facturaDireccionOrden === "asc" ? -1 : 1;
+        if (valA > valB) return facturaDireccionOrden === "asc" ? 1 : -1;
+        return 0;
+    });
+
+    // Pintar la tabla con la copia ya ordenada
+    copia.forEach(f => {
         const tr = document.createElement("tr");
         tr.className = "hover:bg-slate-50 transition border-b cursor-pointer";
         const total = f.total || f.total_factura || 0;
-        const nif = f.cliente_nif || f.NIF || f.nif || '---';
         const clienteNombre = f.cliente_razonsocial || f.razonsocial || f.cliente_nombre || '---';
 
         tr.innerHTML = `
@@ -171,7 +368,7 @@ function renderizarListadoTabla() {
             </td>
             <td class="p-3 text-right font-mono font-bold text-slate-950">${parseFloat(total).toFixed(2)} €</td>
         `;
-        
+
         tr.onclick = () => cargarDetalleFacturaPDF(f.id);
         tbody.appendChild(tr);
     });
@@ -204,7 +401,7 @@ async function cargarDetalleFacturaPDF(facturaId) {
         document.getElementById("pdf-fecha-factura").textContent = `Fecha: ${facturaSeleccionada.fecha || '---'}`;
         document.getElementById("pdf-cliente-nombre").textContent = facturaSeleccionada.razonsocial || facturaSeleccionada.cliente_nombre || '---';
         document.getElementById("pdf-cliente-nif").textContent = `NIF: ${facturaSeleccionada.NIF || facturaSeleccionada.cliente_nif || '---'}`;
-        
+
         const direccion = `${facturaSeleccionada.calle || ''} ${facturaSeleccionada.cliente_numero || ''}`.trim();
         document.getElementById("pdf-cliente-direccion").textContent = direccion || "No especificada";
         document.getElementById("check-factura-pagada").checked = facturaSeleccionada.pagada;
@@ -245,7 +442,7 @@ function calcularYRenderizarConceptosPDF() {
                 <button class="text-rose-600 font-bold hover:underline">Eliminar</button>
             </td>
         `;
-        
+
         tr.querySelector("button").onclick = () => {
             conceptosFactura.splice(index, 1);
             calcularYRenderizarConceptosPDF();
@@ -275,9 +472,9 @@ function agregarConceptoLinea() {
     const precioInput = document.getElementById("pdf-nuevo-precio");
     const descInputForm = document.getElementById("pdf-nuevo-descuento");
 
-    if(!descInput.value.trim() || !precioInput.value) { 
-        alert("Por favor, rellene la descripción y el precio del concepto."); 
-        return; 
+    if (!descInput.value.trim() || !precioInput.value) {
+        alert("Por favor, rellene la descripción y el precio del concepto.");
+        return;
     }
 
     const descuentoValor = descInputForm ? parseFloat(descInputForm.value) || 0 : 0;
@@ -317,14 +514,14 @@ async function enviarActualizacionServidor() {
         pagada: document.getElementById("check-factura-pagada").checked,
         conceptos: conceptosProcesados
     };
-    
+
     try {
         const url = `${API_URL}/facturacion/facturas/${facturaSeleccionada.id}`;
         const r = await fetch(url, {
             method: "PUT",
-            headers: { 
-                "Content-Type": "application/json", 
-                "Authorization": `Bearer ${localStorage.getItem("token_taller")}` 
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("token_taller")}`
             },
             body: JSON.stringify(payload)
         });

@@ -1,3 +1,4 @@
+const API_URL = "http://127.0.0.1:8000";
 const ModuloFacturas = {
     facturasTotales: [],
     facturaActiva: null,
@@ -23,7 +24,7 @@ const ModuloFacturas = {
 
     async descargarFacturasServidor() {
         try {
-            const r = await fetch("http://127.0.0.1:8000/facturas/", {
+            const r = await fetch("${API_URL}/facturas/", {
                 headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
             });
             if (!r.ok) throw new Error();
@@ -69,7 +70,7 @@ const ModuloFacturas = {
     async desplegarFolioPDFReal(facturaId) {
         try {
             // Petición al endpoint específico para traer la factura completa junto a sus conceptos relacionales
-            const r = await fetch(`http://127.0.0.1:8000/facturas/${facturaId}`, {
+            const r = await fetch(`${API_URL}/facturas/${facturaId}`, {
                 headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
             });
             if (!r.ok) throw new Error("No se ha podido recuperar la factura seleccionada.");
@@ -167,7 +168,7 @@ const ModuloFacturas = {
         };
 
         try {
-            const r = await fetch(`http://127.0.0.1:8000/facturas/${this.facturaActiva.id}`, {
+            const r = await fetch(`${API_URL}/facturas/${this.facturaActiva.id}`, {
                 method: "PUT",
                 headers: { 
                     "Content-Type": "application/json", 

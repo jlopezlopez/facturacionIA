@@ -7,6 +7,7 @@ export async function inicializar(parametro) {
     
     document.getElementById("th-id").onclick = () => alternarOrden("id");
     document.getElementById("th-razon").onclick = () => alternarOrden("razonsocial");
+    document.getElementById("th-nif").onclick = () => alternarOrden("NIF");
     document.getElementById("btn-nuevo-cliente").onclick = () => mostrarModalNuevo();
     
     // Vincular envío de formulario, cancelaciones, etc.
