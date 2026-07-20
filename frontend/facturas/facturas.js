@@ -162,6 +162,9 @@ export async function inicializar(filtro) {
     // En facturas.js (dentro de tu función de inicialización) 
     // Dar de alta una nueva factura para el cliente.
 
+ // En facturas.js (dentro de tu función de inicialización) 
+    // Dar de alta una nueva factura (vía cliente o vía listado general)
+
     const btnNuevaFactura = document.getElementById("btn-nueva-factura-cliente");
     const modal = document.getElementById("modal-nueva-factura");
     const btnCerrar = document.getElementById("btn-cerrar-modal");
@@ -170,12 +173,50 @@ export async function inicializar(filtro) {
 
     if (btnNuevaFactura && modal) {
         // --- 1. ABRIR MODAL Y PROPONER VALORES ---
-        btnNuevaFactura.onclick = () => {
-            const clienteId = filtro.cliente_id; 
+        btnNuevaFactura.onclick = async () => {
+            // Evaluamos de forma segura si disponemos de un ID de cliente previo
+            const clienteId = filtro ? (filtro.cliente_id || filtro.id || filtro.filtrarClienteId) : null; 
             
-            if (!clienteId) {
-                alert("No se ha podido recuperar el ID del cliente.");
-                return;
+            // Buscamos un contenedor para el select de clientes en tu modal (si se requiere renderizado dinámico)
+            const contenedorSelectCliente = document.getElementById("contenedor-modal-cliente");
+            const selectCliente = document.getElementById("modal-cliente-id");
+
+            if (clienteId) {
+                // CASO A: Venimos desde la vista de un cliente. Ocultamos el selector si existe en el HTML.
+                if (contenedorSelectCliente) {
+                    contenedorSelectCliente.classList.add("hidden");
+                }
+            } else {
+                // CASO B: Venimos del Historial General. Es obligatorio poder seleccionar el cliente.
+                if (contenedorSelectCliente && selectCliente) {
+                    contenedorSelectCliente.classList.remove("hidden");
+                    selectCliente.innerHTML = '<option value="">-- Seleccione un cliente --</option>';
+                    selectCliente.required = true; // Forzamos validación nativa HTML5
+
+                    try {
+                        // Consultamos los clientes del taller en tu backend
+                        const response = await fetch(`${API_URL}/clientes`, {
+                            headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
+                        });
+                        
+                        if (response.ok) {
+                            const clientes = await response.json();
+                            clientes.forEach(c => {
+                                const nombre = c.razonsocial || c.nombre || "Sin nombre";
+                                const nifStr = c.nif || c.NIF || "";
+                                selectCliente.innerHTML += `<option value="${c.id}">${nombre} ${nifStr ? `(${nifStr})` : ''}</option>`;
+                            });
+                        } else {
+                            console.error("No se pudieron cargar los clientes para el desplegable.");
+                        }
+                    } catch (err) {
+                        console.error("Error al conectar con el endpoint de clientes:", err);
+                    }
+                } else {
+                    // Salvaguarda por si ejecutas el código antes de añadir el <select> en tu HTML
+                    alert("Para crear facturas desde el listado general, necesitas incorporar el elemento select con id 'modal-cliente-id' en tu HTML.");
+                    return;
+                }
             }
 
             // Proponer fecha actual en formato local YYYY-MM-DD
@@ -204,7 +245,16 @@ export async function inicializar(filtro) {
         formFactura.onsubmit = async (e) => {
             e.preventDefault(); // Evitamos que la página se recargue
 
-            const clienteId = filtro.cliente_id;
+            // Si venimos de filtro usamos ese ID, si no, rescatamos el valor del desplegable del modal
+            const clienteIdFiltro = filtro ? (filtro.cliente_id || filtro.id || filtro.filtrarClienteId) : null;
+            const selectCliente = document.getElementById("modal-cliente-id");
+            const clienteIdFinal = clienteIdFiltro || (selectCliente ? selectCliente.value : null);
+
+            if (!clienteIdFinal) {
+                alert("Por favor, seleccione un cliente válido para emitir la factura.");
+                return;
+            }
+
             const numFactura = document.getElementById("modal-num-factura").value.trim();
             const fechaFactura = document.getElementById("modal-fecha").value;
             const ivaFactura = parseFloat(document.getElementById("modal-iva").value);
@@ -219,25 +269,16 @@ export async function inicializar(filtro) {
                 numerofactura: numFactura,
                 fecha: fechaFactura,
                 iva: ivaFactura,
-                numerocliente: parseInt(clienteId),
+                numerocliente: parseInt(clienteIdFinal), // Mantenemos tu conversión estricta a entero
                 pagado: false,
                 conceptos: []
             };
 
             try {
-                // Recuperar el Token para la autorización
-                let token = localStorage.getItem("token");
-                
-                // Limpieza del token por si acaso se guardó con comillas
-                if (token && (token.startsWith('"') || token.startsWith("'"))) {
-                    token = JSON.parse(token); 
-                }
-
                 const response = await fetch(`${API_URL}/facturacion/facturas`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        // Nos aseguramos de enviar la cabecera de autenticación que exige FastAPI
                         "Authorization": `Bearer ${localStorage.getItem("token_taller")}`
                     },
                     body: JSON.stringify(nuevaFacturaBody)
@@ -256,7 +297,7 @@ export async function inicializar(filtro) {
                 
                 cerrarModal();
 
-                // Refrescar listado en pantalla
+                // Refrescar listado en pantalla utilizando el estado del filtro actual
                 if (typeof inicializar === "function") {
                     await inicializar(filtro);
                 }
@@ -362,8 +403,8 @@ function renderizarListadoTabla() {
             <td class="p-3 text-xs">${f.fecha || '---'}</td>
             <td class="p-3 font-semibold text-slate-800">${clienteNombre}</td>
             <td class="p-3 text-xs">
-                <span class="${f.pagada ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'} px-2.5 py-1 rounded-full font-bold">
-                    ${f.pagada ? 'COBRADA' : 'PENDIENTE'}
+                <span class="${f.pagado ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'} px-2.5 py-1 rounded-full font-bold">
+                    ${f.pagado ? 'COBRADA' : 'PENDIENTE'}
                 </span>
             </td>
             <td class="p-3 text-right font-mono font-bold text-slate-950">${parseFloat(total).toFixed(2)} €</td>

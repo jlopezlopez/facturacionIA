@@ -22,22 +22,22 @@ async function navegarA(seccion, parametros = null) {
         const view = document.getElementById(`mod-view-${s}`);
         if (view) view.classList.add("hidden");
         const btn = document.getElementById(`nav-${s}`);
-        if(btn) btn.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition";
+        if (btn) btn.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition";
     });
 
     const contenedorSeccion = document.getElementById(`mod-view-${seccion}`);
     if (contenedorSeccion) {
         contenedorSeccion.classList.remove("hidden");
     }
-    
+
     const btnActivo = document.getElementById(`nav-${seccion}`);
-    if(btnActivo) btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium bg-slate-800 text-white transition";
+    if (btnActivo) btnActivo.className = "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium bg-slate-800 text-white transition";
 
     // Inicializaciones de datos reales
     if (seccion === "clientes") {
         inicializarModuloClientes();
     }
-    
+
     if (seccion === "facturas") {
         // 🚀 CARGA DINÁMICA: Si el contenedor de facturas en index.html está vacío, inyecta facturas.html
         if (contenedorSeccion && contenedorSeccion.innerHTML.trim() === "") {
@@ -51,11 +51,11 @@ async function navegarA(seccion, parametros = null) {
                 return;
             }
         }
-        
+
         // Ejecutamos la inicialización cruzada mapeando los parámetros de clientes.js
         inicializarModuloFacturas(parametros);
     }
-    
+
     if (seccion === "presupuestos") {
         inicializarModuloPresupuestos(parametros);
     }
@@ -70,7 +70,7 @@ async function inicializarModuloClientes() {
     document.getElementById("th-nif").onclick = () => alternarOrdenClientes("NIF");
     document.getElementById("btn-nuevo-cliente").onclick = () => abrirModalAltaCliente();
     document.getElementById("form-cliente").onsubmit = (e) => guardarFichaClienteServidor(e);
-    
+
     await cargarClientesDeBD();
 }
 
@@ -85,7 +85,7 @@ async function cargarClientesDeBD() {
 }
 
 function alternarOrdenClientes(campo) {
-    if(clienteCampoOrden === campo) {
+    if (clienteCampoOrden === campo) {
         clienteDireccionOrden = clienteDireccionOrden === "asc" ? "desc" : "asc";
     } else {
         clienteCampoOrden = campo;
@@ -126,13 +126,16 @@ function renderizarTablaClientes() {
             </td>
             <td class="p-3 text-center whitespace-nowrap">
                 <button class="btn-edit bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-2 py-1 rounded">✏️ Editar</button>
+                <button class="btn-borrar bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-2 py-1 rounded"> 🗑️ Borrar</button>
             </td>
         `;
 
         tr.querySelector(".btn-goto-pres").onclick = () => navegarA("presupuestos", { cliente_id: c.id, razonsocial: c.razonsocial });
         tr.querySelector(".btn-goto-fac").onclick = () => navegarA("facturas", { cliente_id: c.id, razonsocial: c.razonsocial });
         tr.querySelector(".btn-edit").onclick = () => abrirModalModificarCliente(c);
-
+        tr.querySelector(".btn-borrar").onclick = () => {
+            eliminarCliente(c.id, tr);
+        };
         tbody.appendChild(tr);
     });
 }
@@ -162,7 +165,7 @@ function abrirModalModificarCliente(c) {
 
 async function guardarFichaClienteServidor(e) {
     e.preventDefault();
-    
+
     const id = document.getElementById("cliente-id-input").value;
     const rawCp = document.getElementById("c-cp").value.trim();
 
@@ -174,7 +177,7 @@ async function guardarFichaClienteServidor(e) {
         piso: document.getElementById("c-piso").value.trim() || null,
         poblacion: document.getElementById("c-poblacion").value.trim() || null,
         provincia: document.getElementById("c-provincia").value.trim() || null,
-        CP: rawCp !== "" ? parseInt(rawCp, 10) : null, 
+        CP: rawCp !== "" ? parseInt(rawCp, 10) : null,
         telefono: document.getElementById("c-telefono").value.trim() || null,
         observaciones: document.getElementById("c-observaciones").value.trim() || null
     };
@@ -185,27 +188,70 @@ async function guardarFichaClienteServidor(e) {
     try {
         const r = await fetch(url, {
             method: method,
-            headers: { 
-                "Content-Type": "application/json", 
-                "Authorization": `Bearer ${localStorage.getItem("token_taller")}` 
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("token_taller")}`
             },
             body: JSON.stringify(datos)
         });
-        
+
         if (!r.ok) {
             const errorValidacion = await r.json();
             console.error("Fallo de validación detectado por FastAPI:", errorValidacion);
             alert(`El servidor rechazó los datos: ${errorValidacion.detail?.[0]?.msg || 'Error de formato'}`);
             return;
         }
-        
+
         document.getElementById("modal-cliente").classList.add("hidden");
-        await cargarClientesDeBD(); 
+        await cargarClientesDeBD();
         alert("¡Operación realizada con éxito en la base de datos!");
-        
-    } catch (err) { 
+
+    } catch (err) {
         console.error("Error de red o conexión:", err);
-        alert("No se pudo conectar con el servidor. Revisa la consola."); 
+        alert("No se pudo conectar con el servidor. Revisa la consola.");
+    }
+}
+
+// Función para eliminar un cliente mediante la API
+async function eliminarCliente(clienteId, filaElemento = null) {
+    // 1. Confirmación de seguridad
+    const confirmar = confirm("¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer.");
+    if (!confirmar) return;
+
+    try {
+        // 2. Llamada a la API (DELETE /clientes/{cliente_id})
+        const response = await fetch(`${API_URL}/clientes/${clienteId}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem("token_taller")}`,
+                "Content-Type": "application/json"
+            }
+        });
+
+        // 3. Gestión de la respuesta
+        if (response.ok) {
+            alert("Cliente eliminado correctamente.");
+
+            // Opción A: Si pasaste la fila de la tabla por parámetro, la borramos del DOM visualmente
+            if (filaElemento) {
+                filaElemento.remove();
+            } else {
+                // Opción B: Recargar el listado por completo
+                if (typeof inicializarClientes === "function") {
+                    inicializarClientes();
+                }
+            }
+        } else {
+            if (response.status === 401) {
+                throw new Error("Sesión expirada. Por favor, vuelve a iniciar sesión.");
+            }
+            const errorTxt = await response.text();
+            throw new Error(errorTxt || "Error al intentar eliminar el cliente.");
+        }
+
+    } catch (error) {
+        console.error("Error al borrar cliente:", error);
+        alert("Hubo un problema: " + error.message);
     }
 }
 
@@ -223,7 +269,7 @@ async function inicializarModuloFacturas(filtro = null) {
     // 2. Cargamos el JavaScript modular externo (facturas.js) para delegar el control
     try {
         const moduloFacturas = await import("./facturas/facturas.js");
-        
+
         // 3. Forzamos a que se muestre el listado inicializando las sub-vistas
         const subVistaLista = document.getElementById("sub-vista-lista");
         const subVistaDetalle = document.getElementById("sub-vista-detalle");
@@ -232,17 +278,17 @@ async function inicializarModuloFacturas(filtro = null) {
 
         // 4. Dejar que facturas.js maneje la llamada al backend con el filtro unificado
         await moduloFacturas.inicializar(datosFiltro);
-        
+
     } catch (error) {
         console.warn("No se pudo iniciar de forma modular externa, aplicando fallback nativo:", error);
-        
+
         // FALLBACK NATIVO (Por seguridad, si el import falla)
         document.getElementById("pdf-btn-add-concepto").onclick = () => agregarConceptoLineaFactura();
         document.getElementById("btn-guardar-cambios-factura").onclick = () => guardarFacturaEnServidor();
-        
+
         const btnVolver = document.getElementById("btn-volver-listado");
         if (btnVolver) btnVolver.onclick = () => cerrarDetalleFactura();
-        
+
         document.getElementById("sub-vista-detalle").classList.add("hidden");
         document.getElementById("sub-vista-lista").classList.remove("hidden");
 
@@ -258,7 +304,7 @@ async function inicializarModuloFacturas(filtro = null) {
         } else {
             document.getElementById("titulo-modulo-facturas").textContent = "Historial General de Facturas";
         }
-        
+
         renderizarTablaFacturas();
     }
 }
@@ -266,7 +312,7 @@ async function inicializarModuloFacturas(filtro = null) {
 async function cargarFacturasDeBD(clienteId = null) {
     try {
         let url = `${API_URL}/facturacion/facturas/detallados`;
-        
+
         // Si el backend soporta filtrar directamente en la URL, lo dejamos.
         // Si no, no pasa nada, porque luego filtraremos en el frontend.
         if (clienteId) {
@@ -276,12 +322,12 @@ async function cargarFacturasDeBD(clienteId = null) {
         const r = await fetch(url, {
             headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
         });
-        
+
         // Guardamos las facturas en la variable global
         globalFacturas = r.ok ? await r.json() : [];
-    } catch (err) { 
+    } catch (err) {
         console.error("Error en fetch de facturas:", err);
-        globalFacturas = []; 
+        globalFacturas = [];
     }
 }
 
@@ -290,7 +336,7 @@ function renderizarTablaFacturas() {
     const tbody = document.getElementById("tbody-facturas-lista");
     tbody.innerHTML = "";
 
-    if(globalFacturas.length === 0) {
+    if (globalFacturas.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400 italic">No se registran facturas en este tramo.</td></tr>`;
         return;
     }
@@ -305,7 +351,7 @@ function renderizarTablaFacturas() {
             <td class="p-3 font-semibold text-slate-900">${f.cliente_razonsocial || f.razonsocial || '---'}</td>
             <td class="p-3 font-mono">${f.cliente_nif || f.nif || '---'}</td>
             <td class="p-3">${f.cliente_telefono || f.telefono || '---'}</td>
-            <td class="p-3"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${f.pagada ? 'bg-emerald-100 text-emerald-800':'bg-rose-100 text-rose-800'}">${f.pagada ? 'COBRADA':'PENDIENTE'}</span></td>
+            <td class="p-3"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${f.pagada ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">${f.pagada ? 'COBRADA' : 'PENDIENTE'}</span></td>
             <td class="p-3 text-right font-mono font-bold text-sm text-slate-950">${parseFloat(total).toFixed(2)} €</td>
         `;
         tr.onclick = () => abrirFolioFacturaReal(f.id);
@@ -315,12 +361,12 @@ function renderizarTablaFacturas() {
 
 async function abrirFolioFacturaReal(id) {
     try {
-        const url = `${API_URL}/facturacion/facturas/${id}`; 
+        const url = `${API_URL}/facturacion/facturas/${id}`;
         const r = await fetch(url, {
             headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
         });
-        
-        if(!r.ok) throw new Error();
+
+        if (!r.ok) throw new Error();
         facturaActiva = await r.json();
 
         // ✨ Cambiados a los IDs reales de tu HTML
@@ -336,8 +382,8 @@ async function abrirFolioFacturaReal(id) {
 
         facturaConceptosActivos = facturaActiva.conceptos || [];
         calcularYRenderizarConceptosFactura();
-    } catch { 
-        alert("No se pudo descargar el desglose de la factura."); 
+    } catch {
+        alert("No se pudo descargar el desglose de la factura.");
     }
 }
 
@@ -365,7 +411,7 @@ function calcularYRenderizarConceptosFactura() {
             <td class="p-2 text-right font-mono font-bold">${sub.toFixed(2)} €</td>
             <td class="p-2 text-center"><button class="text-rose-600 font-bold hover:underline">Eliminar</button></td>
         `;
-        
+
         tr.querySelector("button").onclick = () => {
             facturaConceptosActivos.splice(index, 1);
             calcularYRenderizarConceptosFactura();
@@ -392,24 +438,24 @@ function agregarConceptoLineaFactura() {
     const d = document.getElementById("pdf-nuevo-desc").value.trim();
     const c = parseFloat(document.getElementById("pdf-nuevo-cant").value);
     const p = parseFloat(document.getElementById("pdf-nuevo-precio").value);
-    
+
     const inputDesc = document.getElementById("pdf-nuevo-descuento");
     const desc = inputDesc ? parseFloat(inputDesc.value) || 0 : 0;
 
-    if(!d || isNaN(p)) return;
-    
-    facturaConceptosActivos.push({ 
-        descripcion: d, 
-        cantidad: c, 
+    if (!d || isNaN(p)) return;
+
+    facturaConceptosActivos.push({
+        descripcion: d,
+        cantidad: c,
         precio_unitario: p,
-        descuento: desc 
+        descuento: desc
     });
-    
+
     document.getElementById("pdf-nuevo-desc").value = "";
     document.getElementById("pdf-nuevo-cant").value = "1";
     document.getElementById("pdf-nuevo-precio").value = "";
     if (inputDesc) inputDesc.value = "0";
-    
+
     calcularYRenderizarConceptosFactura();
 }
 
@@ -442,7 +488,7 @@ function cerrarDetalleFactura() {
 async function inicializarModuloPresupuestos(filtro = null) {
     document.getElementById("pres-btn-add-concepto").onclick = () => agregarConceptoLineaPresupuesto();
     document.getElementById("btn-guardar-cambios-presupuesto").onclick = () => guardarPresupuestoEnServidor();
-    
+
     document.getElementById("presupuestos-sub-detalle").classList.add("hidden");
     document.getElementById("presupuestos-sub-lista").classList.remove("hidden");
 
@@ -452,7 +498,7 @@ async function inicializarModuloPresupuestos(filtro = null) {
 
     if (filtro && clienteId) {
         document.getElementById("titulo-modulo-presupuestos").textContent = `Presupuestos de: ${filtro.razonsocial || 'Cliente'}`;
-        
+
         globalPresupuestos = globalPresupuestos.filter(p => {
             const pClienteId = p.cliente_id || p.CLIENTE_ID || p.id_cliente;
             return String(pClienteId) === String(clienteId);
@@ -460,14 +506,14 @@ async function inicializarModuloPresupuestos(filtro = null) {
     } else {
         document.getElementById("titulo-modulo-presupuestos").textContent = "Historial General de Presupuestos";
     }
-    
+
     renderizarTablaPresupuestos();
 }
 
 async function cargarPresupuestosDeBD(clienteId = null) {
     try {
         let url = `${API_URL}/facturacion/presupuestos/detallados`;
-        
+
         if (clienteId) {
             url += `?cliente_id=${clienteId}`;
         }
@@ -475,11 +521,11 @@ async function cargarPresupuestosDeBD(clienteId = null) {
         const r = await fetch(url, {
             headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
         });
-        
+
         globalPresupuestos = r.ok ? await r.json() : [];
-    } catch (err) { 
+    } catch (err) {
         console.error("Error en fetch de presupuestos:", err);
-        globalPresupuestos = []; 
+        globalPresupuestos = [];
     }
 }
 
@@ -487,7 +533,7 @@ function renderizarTablaPresupuestos() {
     const tbody = document.getElementById("tbody-presupuestos-lista");
     tbody.innerHTML = "";
 
-    if(globalPresupuestos.length === 0) {
+    if (globalPresupuestos.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400 italic">No hay presupuestos cargados en este tramo.</td></tr>`;
         return;
     }
@@ -511,12 +557,12 @@ function renderizarTablaPresupuestos() {
 
 async function abrirFolioPresupuestoReal(id) {
     try {
-        const url = `${API_URL}/facturacion/presupuestos/${id}`; 
+        const url = `${API_URL}/facturacion/presupuestos/${id}`;
         const r = await fetch(url, {
             headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
         });
-        
-        if(!r.ok) throw new Error();
+
+        if (!r.ok) throw new Error();
         presupuestoActivo = await r.json();
 
         document.getElementById("presupuestos-sub-lista").classList.add("hidden");
@@ -530,8 +576,8 @@ async function abrirFolioPresupuestoReal(id) {
 
         presupuestoConceptosActivos = presupuestoActivo.conceptos || [];
         calcularYRenderizarConceptosPresupuesto();
-    } catch { 
-        alert("No se pudo cargar el desglose del presupuesto."); 
+    } catch {
+        alert("No se pudo cargar el desglose del presupuesto.");
     }
 }
 
@@ -559,7 +605,7 @@ function calcularYRenderizarConceptosPresupuesto() {
             <td class="p-2 text-right font-mono font-bold">${sub.toFixed(2)} €</td>
             <td class="p-2 text-center"><button class="text-rose-600 font-bold hover:underline">Eliminar</button></td>
         `;
-        
+
         tr.querySelector("button").onclick = () => {
             presupuestoConceptosActivos.splice(index, 1);
             calcularYRenderizarConceptosPresupuesto();
@@ -590,20 +636,20 @@ function agregarConceptoLineaPresupuesto() {
     const inputDesc = document.getElementById("pres-nuevo-descuento");
     const desc = inputDesc ? parseFloat(inputDesc.value) || 0 : 0;
 
-    if(!d || isNaN(p)) return;
-    
-    presupuestoConceptosActivos.push({ 
-        descripcion: d, 
-        cantidad: c, 
+    if (!d || isNaN(p)) return;
+
+    presupuestoConceptosActivos.push({
+        descripcion: d,
+        cantidad: c,
         precio_unitario: p,
         descuento: desc
     });
-    
+
     document.getElementById("pres-nuevo-desc").value = "";
     document.getElementById("pres-nuevo-cant").value = "1";
     document.getElementById("pres-nuevo-precio").value = "";
     if (inputDesc) inputDesc.value = "0";
-    
+
     calcularYRenderizarConceptosPresupuesto();
 }
 
@@ -650,7 +696,7 @@ document.getElementById("btn-logout").addEventListener("click", () => { localSto
 
 function comprobarSesion() {
     const token = localStorage.getItem("token_taller");
-    if(token) {
+    if (token) {
         document.getElementById("vista-login").classList.add("hidden");
         document.getElementById("vista-dashboard").classList.remove("hidden");
         document.getElementById("usuario-sesion").textContent = localStorage.getItem("usuario_nombre");

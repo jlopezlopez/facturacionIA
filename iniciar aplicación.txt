@@ -1,0 +1,5 @@
+(j-lopez)-11/07/2026 13:08:20,70-C:\Proyecto Facturación IA\taller-facturacion-backend>
+venv\Scripts\activate.bat
+
+(venv) (j-lopez)-11/07/2026 13:09:46,58-C:\Proyecto Facturación IA\taller-facturacion-backend>
+uvicorn app.main:app --reload

@@ -22,15 +22,17 @@
             <table class="w-full text-left text-sm">
                 <thead class="bg-slate-50 border-b font-semibold text-slate-700">
                     <tr><!-- Cabecera de Nº Factura -->
-                        <th onclick="alternarOrdenFacturas('numero')" class="cursor-pointer hover:bg-slate-100 p-3 select-none">
+                        <th onclick="alternarOrdenFacturas('numero')"
+                            class="cursor-pointer hover:bg-slate-100 p-3 select-none">
                             Nº Factura <span class="text-slate-400">⇅</span>
                         </th>
 
                         <!-- Cabecera de Fecha Emisión -->
-                        <th onclick="alternarOrdenFacturas('fecha')" class="cursor-pointer hover:bg-slate-100 p-3 select-none">
+                        <th onclick="alternarOrdenFacturas('fecha')"
+                            class="cursor-pointer hover:bg-slate-100 p-3 select-none">
                             Fecha Emisión <span class="text-slate-400">⇅</span>
                         </th>
-                        
+
                         <th class="p-3">Cliente / Empresa</th>
                         <th class="p-3">Estado Cobro</th>
                         <th class="p-3 text-right">Importe Total</th>
@@ -151,16 +153,27 @@
 </div>
 
 <!-- Modal para Nueva Factura (Oculto por defecto) -->
-<div id="modal-nueva-factura" class="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center hidden z-50">
+<div id="modal-nueva-factura"
+    class="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden border border-slate-100">
         <!-- Cabecera del Modal -->
         <div class="bg-slate-800 text-white px-6 py-4 flex justify-between items-center">
             <h3 class="font-bold text-lg">Nueva Factura</h3>
             <button id="btn-cerrar-modal" class="text-slate-300 hover:text-white text-xl font-bold">&times;</button>
         </div>
-        
+
         <!-- Formulario -->
         <form id="form-nueva-factura" class="p-6 space-y-4">
+            <!-- Añade esto dentro de form-nueva-factura (en tu HTML) -->
+            <div id="contenedor-modal-cliente" class="mb-4">
+                <label for="modal-cliente-id" class="block text-xs font-bold text-slate-700 uppercase mb-1">Cliente
+                    *</label>
+                <select id="modal-cliente-id"
+                    class="w-full p-2 border rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- Selecciona un cliente --</option>
+                </select>
+            </div>
+
             <!-- Número de Factura -->
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Número de Factura</label>

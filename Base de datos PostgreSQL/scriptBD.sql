@@ -9,6 +9,10 @@
 -- Eliminar tablas si existen (respetando el orden de dependencias por claves foráneas)
 DROP TABLE IF EXISTS conceptopresupuesto;
 DROP TABLE IF EXISTS presupuesto;
+DROP TABLE IF EXISTS conceptonota;
+DROP TABLE IF EXISTS nota;
+DROP TABLE IF EXISTS conceptoalbaran;
+DROP TABLE IF EXISTS albaran;
 DROP TABLE IF EXISTS conceptofactura;
 DROP TABLE IF EXISTS factura;
 DROP TABLE IF EXISTS cliente;
@@ -114,6 +118,70 @@ CREATE TABLE conceptopresupuesto (
   PRIMARY KEY (numeroconpresup, idpresupuesto),
   CONSTRAINT fk_concepto_presupuesto
     FOREIGN KEY (idpresupuesto) REFERENCES presupuesto(id)
+    ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+-- -----------------------------------------------------
+-- Tabla notas
+-- -----------------------------------------------------
+CREATE TABLE nota (
+  id SERIAL, -- Cambiado a SERIAL
+  numeronota VARCHAR(15) NOT NULL,
+  fecha DATE,
+  iva REAL,                                     
+  numerocliente INTEGER NOT NULL,
+  aceptado BOOLEAN,
+  PRIMARY KEY (id),
+  CONSTRAINT fk_nota_cliente
+    FOREIGN KEY (numerocliente) REFERENCES cliente(id)
+    ON UPDATE CASCADE ON DELETE RESTRICT
+);
+    
+-- -----------------------------------------------------
+-- Tabla conceptonota
+-- -----------------------------------------------------
+CREATE TABLE conceptonota (
+  numeronota INTEGER NOT NULL,
+  idnota INTEGER NOT NULL,
+  descripcion VARCHAR(100),
+  cantidad REAL,
+  preciounidad REAL,
+  descuento REAL,
+  PRIMARY KEY (numeronota, idnota),
+  CONSTRAINT fk_concepto_nota
+    FOREIGN KEY (idnota) REFERENCES nota(id)
+    ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+-- -----------------------------------------------------
+-- Tabla Albarán
+-- -----------------------------------------------------
+CREATE TABLE albaran (
+  id SERIAL, -- Cambiado a SERIAL
+  numeroalbaran VARCHAR(15) NOT NULL,
+  fecha DATE,
+  iva REAL,                                     
+  numerocliente INTEGER NOT NULL,
+  pagado BOOLEAN,
+  PRIMARY KEY (id),
+  CONSTRAINT fk_albaran_cliente
+    FOREIGN KEY (numerocliente) REFERENCES cliente(id)
+    ON UPDATE CASCADE ON DELETE RESTRICT
+);
+    
+-- -----------------------------------------------------
+-- Tabla conceptoalbaran
+-- -----------------------------------------------------
+CREATE TABLE conceptoalbaran (
+  numeroalbaran INTEGER NOT NULL,
+  idalbaran INTEGER NOT NULL,
+  descripcion VARCHAR(100),
+  cantidad REAL,
+  preciounidad REAL,
+  descuento REAL,
+  PRIMARY KEY (numeroalbaran, idalbaran),
+  CONSTRAINT fk_concepto_albaran
+    FOREIGN KEY (idalbaran) REFERENCES albaran(id)
     ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
