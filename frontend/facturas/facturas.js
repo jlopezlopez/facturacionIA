@@ -20,6 +20,16 @@ export async function inicializar(filtro) {
         btnGuardar.onclick = enviarActualizacionServidor; // Asignamos la función real de facturas.js
     }
 
+    const btnBorrar = document.getElementById("btn-borrar-factura");
+    if (btnBorrar) {
+        btnBorrar.onclick = () => {
+            if (!facturaSeleccionada) {
+                alert("No hay ninguna factura seleccionada para eliminar.");
+                return;
+            }
+            eliminarFactura(facturaSeleccionada.id);
+        };
+    }
     const btnPdf = document.getElementById("btn-imprimir-pdf");
     if (btnPdf) {
         btnPdf.onclick = () => {
@@ -162,7 +172,7 @@ export async function inicializar(filtro) {
     // En facturas.js (dentro de tu función de inicialización) 
     // Dar de alta una nueva factura para el cliente.
 
- // En facturas.js (dentro de tu función de inicialización) 
+    // En facturas.js (dentro de tu función de inicialización) 
     // Dar de alta una nueva factura (vía cliente o vía listado general)
 
     const btnNuevaFactura = document.getElementById("btn-nueva-factura-cliente");
@@ -172,33 +182,72 @@ export async function inicializar(filtro) {
     const formFactura = document.getElementById("form-nueva-factura");
 
     if (btnNuevaFactura && modal) {
+        // --- FUNCIÓN AUXILIAR: Obtiene el número correlativo más alto + 1 ---
+        const obtenerSiguienteNumeroFactura = async (añoActual) => {
+            try {
+                // Consultamos las facturas existentes
+                const response = await fetch(`${API_URL}/facturacion/facturas/detallados`, {
+                    headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
+                });
+
+                if (!response.ok) return `FACT-${añoActual}-1`;
+
+                const facturas = await response.json();
+
+                // Buscamos el sufijo numérico más alto del año en curso
+                let maxNumero = 0;
+                const prefijoBuscado = `FACT-${añoActual}-`;
+
+                facturas.forEach(f => {
+                    // Soportamos f.numero o f.numerofactura según devuelva tu backend
+                    const numStr = f.numero || f.numerofactura || "";
+
+                    // Verificamos si la factura empieza por "FACT-2026-"
+                    if (numStr.startsWith(prefijoBuscado)) {
+                        // Extraemos la parte numérica final
+                        const partes = numStr.split("-");
+                        const secuencial = parseInt(partes[partes.length - 1], 10);
+                        if (!isNaN(secuencial) && secuencial > maxNumero) {
+                            maxNumero = secuencial;
+                        }
+                    }
+                });
+
+                // Retornamos el siguiente número
+                return `FACT-${añoActual}-${maxNumero + 1}`;
+
+            } catch (err) {
+                console.error("Error al obtener el número correlativo:", err);
+                // Fallback en caso de error de red
+                return `FACT-${añoActual}-1`;
+            }
+        };
+
         // --- 1. ABRIR MODAL Y PROPONER VALORES ---
         btnNuevaFactura.onclick = async () => {
             // Evaluamos de forma segura si disponemos de un ID de cliente previo
-            const clienteId = filtro ? (filtro.cliente_id || filtro.id || filtro.filtrarClienteId) : null; 
-            
-            // Buscamos un contenedor para el select de clientes en tu modal (si se requiere renderizado dinámico)
+            const clienteId = filtro ? (filtro.cliente_id || filtro.id || filtro.filtrarClienteId) : null;
+
             const contenedorSelectCliente = document.getElementById("contenedor-modal-cliente");
             const selectCliente = document.getElementById("modal-cliente-id");
 
             if (clienteId) {
-                // CASO A: Venimos desde la vista de un cliente. Ocultamos el selector si existe en el HTML.
+                // CASO A: Venimos desde la vista de un cliente. Ocultamos el selector si existe.
                 if (contenedorSelectCliente) {
                     contenedorSelectCliente.classList.add("hidden");
                 }
             } else {
-                // CASO B: Venimos del Historial General. Es obligatorio poder seleccionar el cliente.
+                // CASO B: Venimos del Historial General. Cargamos clientes en el desplegable.
                 if (contenedorSelectCliente && selectCliente) {
                     contenedorSelectCliente.classList.remove("hidden");
                     selectCliente.innerHTML = '<option value="">-- Seleccione un cliente --</option>';
-                    selectCliente.required = true; // Forzamos validación nativa HTML5
+                    selectCliente.required = true;
 
                     try {
-                        // Consultamos los clientes del taller en tu backend
                         const response = await fetch(`${API_URL}/clientes`, {
                             headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
                         });
-                        
+
                         if (response.ok) {
                             const clientes = await response.json();
                             clientes.forEach(c => {
@@ -213,7 +262,6 @@ export async function inicializar(filtro) {
                         console.error("Error al conectar con el endpoint de clientes:", err);
                     }
                 } else {
-                    // Salvaguarda por si ejecutas el código antes de añadir el <select> en tu HTML
                     alert("Para crear facturas desde el listado general, necesitas incorporar el elemento select con id 'modal-cliente-id' en tu HTML.");
                     return;
                 }
@@ -223,11 +271,13 @@ export async function inicializar(filtro) {
             const hoy = new Date().toISOString().split('T')[0];
             document.getElementById("modal-fecha").value = hoy;
 
-            // Proponer un número correlativo orientativo
+            // 🆕 NUEVO: Obtener el número correlativo real desde la base de datos
             const añoActual = new Date().getFullYear();
-            const sugerenciaCodigo = Date.now().toString().slice(-4);
-            document.getElementById("modal-num-factura").value = `FACT-${añoActual}-${sugerenciaCodigo}`;
-            
+            document.getElementById("modal-num-factura").value = "Cargando..."; // Feedback visual rápido
+
+            const numSugerido = await obtenerSiguienteNumeroFactura(añoActual);
+            document.getElementById("modal-num-factura").value = numSugerido;
+
             // Mostrar modal quitando la clase hidden
             modal.classList.remove("hidden");
         };
@@ -243,9 +293,8 @@ export async function inicializar(filtro) {
 
         // --- 3. ENVIAR FORMULARIO AL BACKEND ---
         formFactura.onsubmit = async (e) => {
-            e.preventDefault(); // Evitamos que la página se recargue
+            e.preventDefault();
 
-            // Si venimos de filtro usamos ese ID, si no, rescatamos el valor del desplegable del modal
             const clienteIdFiltro = filtro ? (filtro.cliente_id || filtro.id || filtro.filtrarClienteId) : null;
             const selectCliente = document.getElementById("modal-cliente-id");
             const clienteIdFinal = clienteIdFiltro || (selectCliente ? selectCliente.value : null);
@@ -264,12 +313,11 @@ export async function inicializar(filtro) {
                 return;
             }
 
-            // Construimos el JSON exacto para tu API
             const nuevaFacturaBody = {
                 numerofactura: numFactura,
                 fecha: fechaFactura,
                 iva: ivaFactura,
-                numerocliente: parseInt(clienteIdFinal), // Mantenemos tu conversión estricta a entero
+                numerocliente: parseInt(clienteIdFinal),
                 pagado: false,
                 conceptos: []
             };
@@ -294,10 +342,9 @@ export async function inicializar(filtro) {
 
                 const facturaCreada = await response.json();
                 alert(`Factura ${facturaCreada.numero || numFactura} creada con éxito.`);
-                
+
                 cerrarModal();
 
-                // Refrescar listado en pantalla utilizando el estado del filtro actual
                 if (typeof inicializar === "function") {
                     await inicializar(filtro);
                 }
@@ -579,5 +626,46 @@ async function enviarActualizacionServidor() {
     } catch (err) {
         console.error("Error al guardar la factura en el servidor:", err);
         alert(`No se pudo actualizar la factura en el servidor. Detalle: ${err.message}`);
+    }
+}
+
+async function eliminarFactura(facturaId, filaElemento = null) {
+    const idNum = parseInt(facturaId, 10);
+    if (isNaN(idNum)) {
+        alert("ID de factura no válido para eliminar.");
+        return;
+    }
+
+    const confirmar = confirm("¿Estás seguro de que deseas eliminar esta factura? Esta acción no se puede deshacer.");
+    if (!confirmar) return;
+
+    try {
+        const response = await fetch(`${API_URL}/facturacion/facturas/${idNum}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem("token_taller")}`,
+                "Content-Type": "application/json"
+            }
+        });
+
+        if (response.ok || response.status === 204) {
+            alert("Factura eliminada correctamente.");
+            
+            // Volver a la vista de lista si estábamos en el detalle
+            mostrarOcultarVistas(true);
+            
+            // Recargar la tabla desde el servidor
+            await cargarFacturasServidor();
+            renderizarListadoTabla();
+        } else {
+            if (response.status === 401) {
+                throw new Error("Sesión expirada. Por favor, inicia sesión de nuevo.");
+            }
+            const errorTxt = await response.text();
+            throw new Error(errorTxt || "Error al eliminar la factura.");
+        }
+    } catch (error) {
+        console.error("Error al borrar factura:", error);
+        alert("No se pudo eliminar la factura: " + error.message);
     }
 }

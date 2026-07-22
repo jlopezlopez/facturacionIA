@@ -233,18 +233,51 @@ def descargar_factura_pdf(factura_id: int, usuario_actual: dict = Depends(obtene
 def obtener_presupuestos_detallados(usuario_actual: dict = Depends(obtener_usuario_actual)):
     with get_db_connection() as conn:
         with conn.cursor() as cursor:
+                       # SQL mejorado que calcula la base imponible y el total con IVA aplicado directamente desde la DB
             query = """
-                SELECT p.id, p.numeropresupuesto, p.fecha, p.aceptado, p.iva, c.razonsocial, c.NIF, p.numerocliente
-                FROM presupuesto p
-                INNER JOIN cliente c ON p.numerocliente = c.id
-                ORDER BY p.id DESC;
+                SELECT 
+                    f.id, 
+                    f.numeropresupuesto, 
+                    f.fecha, 
+                    f.aceptado, 
+                    f.iva, 
+                    c.razonsocial, 
+                    c.NIF, 
+                    f.numerocliente,
+                    COALESCE(
+                        SUM(
+                            (cf.cantidad * cf.preciounidad) * (1 - (cf.descuento / 100.0))
+                        ), 0
+                    ) AS base_imponible
+                FROM presupuesto f
+                INNER JOIN cliente c ON f.numerocliente = c.id
+                LEFT JOIN conceptopresupuesto cf ON f.id = cf.idpresupuesto
+                GROUP BY f.id, f.numeropresupuesto, f.fecha, f.aceptado, f.iva, c.razonsocial, c.NIF, f.numerocliente
+                ORDER BY f.id DESC;
             """
             cursor.execute(query)
             filas = cursor.fetchall()
-            return [{
-                "id": f[0], "numero": f[1], "fecha": str(f[2]), "aceptado": f[3], "iva": float(f[4]),
-                "razonsocial": f[5], "NIF": f[6], "numerocliente": f[7]
-            } for f in filas]
+            resultado = []
+            for f in filas:
+                base_imponible = float(f[8])
+                porcentaje_iva = float(f[4])
+                
+                # Calculamos el total con el IVA sumado
+                total_con_iva = base_imponible * (1 + (porcentaje_iva / 100.0))
+                
+                resultado.append({
+                    "id": f[0], 
+                    "numero": f[1], 
+                    "fecha": str(f[2]), 
+                    "aceptado": f[3], 
+                    "iva": porcentaje_iva,
+                    "razonsocial": f[5], 
+                    "NIF": f[6], 
+                    "numerocliente": f[7],
+                    "total": total_con_iva  # <--- Enviamos el importe calculado listo al Frontend
+                })
+                
+            return resultado
 
 # ==========================================
 # 7. OBTENER TODAS LAS FACTURAS (CON CLIENTE)
@@ -381,7 +414,7 @@ def obtener_detalle_presupuesto(presupuesto_id: int, usuario_actual: dict = Depe
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al recuperar el presupuesto: {str(e)}")
     
-    # ==========================================
+# ==========================================
 # NUEVO: ESQUEMAS PARA LA ACTUALIZACIÓN DE FACTURA
 # ==========================================
 class ConceptoFacturaUpdate(BaseModel):
@@ -447,4 +480,154 @@ def actualizar_factura(
         raise HTTPException(
             status_code=500, 
             detail=f"Error al actualizar la factura en el servidor: {str(e)}"
+        )
+    
+
+# ==========================================
+# NUEVO: ELIMINAR FACTURA Y SUS CONCEPTOS
+# ==========================================
+@router.delete("/facturas/{factura_id}", status_code=status.HTTP_200_OK)
+def eliminar_factura(
+    factura_id: int, 
+    usuario_actual: dict = Depends(obtener_usuario_actual)
+):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # 1. Comprobar si la factura existe
+                cursor.execute("SELECT id FROM factura WHERE id = %s;", (factura_id,))
+                if not cursor.fetchone():
+                    raise HTTPException(status_code=404, detail="Factura no encontrada")
+
+                # 2. Eliminar primero los conceptos asociados en conceptofactura
+                cursor.execute(
+                    "DELETE FROM conceptofactura WHERE idfactura = %s;",
+                    (factura_id,)
+                )
+
+                # 3. Eliminar la cabecera de la factura
+                cursor.execute(
+                    "DELETE FROM factura WHERE id = %s;",
+                    (factura_id,)
+                )
+
+                # 4. Confirmar la transacción completa de forma segura
+                conn.commit()
+
+                return {
+                    "status": "éxito",
+                    "mensaje": f"Factura {factura_id} eliminada correctamente."
+                }
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al eliminar la factura en el servidor: {str(e)}"
+        )
+    
+# ==========================================
+# NUEVO: ELIMINAR PRESUPUESTO Y SUS CONCEPTOS
+# ==========================================
+@router.delete("/presupuestos/{presupuesto_id}", status_code=status.HTTP_200_OK)
+def eliminar_presupuesto(
+    presupuesto_id: int, 
+    usuario_actual: dict = Depends(obtener_usuario_actual)
+):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # 1. Comprobar si la factura existe
+                cursor.execute("SELECT id FROM presupuesto WHERE id = %s;", (presupuesto_id,))
+                if not cursor.fetchone():
+                    raise HTTPException(status_code=404, detail="Presupuesto no encontrado")
+
+                # 2. Eliminar primero los conceptos asociados en conceptopresupuesto
+                cursor.execute(
+                    "DELETE FROM conceptopresupuesto WHERE idpresupuesto = %s;",
+                    (presupuesto_id,)
+                )
+
+                # 3. Eliminar la cabecera de la factura
+                cursor.execute(
+                    "DELETE FROM presupuesto WHERE id = %s;",
+                    (presupuesto_id,)
+                )
+
+                # 4. Confirmar la transacción completa de forma segura
+                conn.commit()
+
+                return {
+                    "status": "éxito",
+                    "mensaje": f"Presupuesto {presupuesto_id} eliminado correctamente."
+                }
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al eliminar el presupuesto en el servidor: {str(e)}"
+        )
+    
+# ==========================================
+# NUEVO: ESQUEMAS PARA LA ACTUALIZACIÓN DE PRESUPUESTOS
+# ==========================================
+class ConceptoPresupuestoUpdate(BaseModel):
+    descripcion: str
+    cantidad: float
+    precio_unitario: float
+    descuento: float
+
+class PresupuestoUpdate(BaseModel):
+    aceptado: bool
+    conceptos: List[ConceptoPresupuestoUpdate]
+    
+# ==========================================
+# NUEVO: 9B. ACTUALIZAR ESTADO Y CONCEPTOS DE Presupuestos
+# ==========================================
+@router.put("/presupuestos/{presupuesto_id}", status_code=status.HTTP_200_OK)
+def actualizar_presupuesto(
+    presupuesto_id: int, 
+    payload: PresupuestoUpdate, 
+    usuario_actual: dict = Depends(obtener_usuario_actual)
+):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # 1. Comprobar si la factura existe
+                cursor.execute("SELECT id FROM presupuesto WHERE id = %s;", (presupuesto_id,))
+                if not cursor.fetchone():
+                    raise HTTPException(status_code=404, detail="Presupuesto no encontrado")
+
+                # 1. Eliminar los conceptos antiguos vinculados
+                cursor.execute(
+                    "DELETE FROM conceptopresupuesto WHERE idpresupuesto = %s;",
+                    (presupuesto_id,)
+                )
+
+                # 4. Insertar los nuevos conceptos actualizados
+                # Usaremos un autoincremento para 'numeroconcepto' partiendo de 1
+                for index, c in enumerate(payload.conceptos, start=1):
+                    cursor.execute(
+                        """INSERT INTO conceptopresupuesto (numeroconpresup, idpresupuesto, descripcion, cantidad, preciounidad, descuento)
+                           VALUES (%s, %s, %s, %s, %s, %s);""",
+                        (index, presupuesto_id, c.descripcion, c.cantidad, c.precio_unitario, c.descuento)
+                    )
+
+                # Confirmar toda la transacción de manera segura
+                conn.commit()
+                
+                return {
+                    "status": "éxito",
+                    "mensaje": f"presupuesto {presupuesto_id} y sus conceptos actualizados correctamente."
+                }
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al actualizar el presupuesto en el servidor: {str(e)}"
         )

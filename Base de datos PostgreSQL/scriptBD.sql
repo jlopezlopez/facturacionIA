@@ -185,6 +185,19 @@ CREATE TABLE conceptoalbaran (
     ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
+ALTER TABLE factura
+ADD CONSTRAINT uq_factura_numerofactura UNIQUE (numerofactura);
+
+ALTER TABLE presupuesto
+ADD CONSTRAINT uq_presupuesto_numeropresupuesto UNIQUE (numeropresupuesto);
+
+ALTER TABLE nota
+ADD CONSTRAINT uq_nota_numeronota UNIQUE (numeronota);
+
+ALTER TABLE albaran
+ADD CONSTRAINT uq_albaran_numeroalbaran UNIQUE (numeroalbaran);
+
+
 -- Permisos para el usuario (se ejecutan sobre el esquema public en Postgres)
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO facturacion;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO facturacion;

@@ -1,0 +1,224 @@
+<div class="space-y-6">
+    <div id="sub-vista-lista-presupuestos" class="space-y-4">
+        <div class="flex justify-between items-center">
+            <div>
+                <h2 id="titulo-modulo-presupuestos" class="text-2xl font-bold text-slate-800">Historial General de Presupuestos
+                </h2>
+                <p id="subtitulo-filtro" class="text-slate-500 text-xs">Haga clic en una fila para ver el desglose o
+                    editar conceptos de la presupuesto</p>
+            </div>
+            <div class="flex gap-2">
+                <button id="btn-nuevo-presupuesto-cliente"
+                    class="bg-blue-400 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm transition flex items-center gap-1">
+                    <span>➕ Nuevo Presupuesto</span>
+                </button>
+                <button onclick="window.navegarA('clientes')"
+                    class="bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg">← Volver a
+                    Clientes</button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow border overflow-hidden">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 border-b font-semibold text-slate-700">
+                    <tr><!-- Cabecera de Nº Presupuesto -->
+                        <th onclick="alternarOrdenPresupuestos('numero')"
+                            class="cursor-pointer hover:bg-slate-100 p-3 select-none">
+                            Nº Presupuesto <span class="text-slate-400">⇅</span>
+                        </th>
+
+                        <!-- Cabecera de Fecha Emisión -->
+                        <th onclick="alternarOrdenPresupuestos('fecha')"
+                            class="cursor-pointer hover:bg-slate-100 p-3 select-none">
+                            Fecha Emisión <span class="text-slate-400">⇅</span>
+                        </th>
+
+                        <th class="p-3">Cliente / Empresa</th>
+                        <th class="p-3">Paso a Factura</th>
+                        <th class="p-3 text-right">Importe Total</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-presupuestos-lista" class="divide-y text-slate-600 cursor-pointer">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="sub-vista-detalle-presupuestos" class="hidden space-y-6">
+        <div class="no-print flex justify-between items-center bg-slate-200 p-4 rounded-lg border">
+            <button id="btn-volver-listado"
+                class="bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded shadow hover:bg-slate-600">← Volver
+                al Listado</button>
+            <div class="flex items-center gap-4">
+                <label
+                    class="flex items-center gap-2 text-sm font-bold text-slate-700 bg-white px-3 py-1.5 rounded border shadow-sm">
+                    <input type="checkbox" id="check-presupuesto-aceptado" class="w-4 h-4 text-emerald-600" disabled>
+                    Presupuesto aceptado
+                </label>
+                <button id="btn-guardar-cambios-presupuesto"
+                    class="bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded shadow hover:bg-emerald-700">💾
+                    Guardar Cambios Presupuesto
+                </button>
+
+                <button id="btn-imprimirPresupuesto-pdf"
+                    class="bg-blue-900 text-white text-xs font-bold px-3 py-2 rounded shadow hover:bg-blue-800 flex items-center gap-1">
+                    🖨️ Imprimir / PDF
+                </button>
+                <button id="btn-pasarFactura"
+                    class="bg-blue-900 text-white text-xs font-bold px-3 py-2 rounded shadow hover:bg-blue-800 flex items-center gap-1">
+                    👈 Pasar a Factura
+                </button>
+                <button id="btn-borrar-presupuesto"
+                    class="bg-blue-900 text-white text-xs font-bold px-3 py-2 rounded shadow hover:bg-blue-800 flex items-center gap-1">
+                     🗑️ Borrar Presupuesto
+                </button>
+
+            </div>
+        </div>
+
+        <div
+            class="bg-white max-w-4xl mx-auto p-12 rounded-xl shadow-2xl border border-slate-300 font-serif text-slate-800 relative">
+
+            <div class="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
+                <div>
+                    <h1 class="text-3xl font-black tracking-tight text-slate-900 font-sans">Talleres Moreno SCP</h1>
+                    <p class="text-sm font-sans text-slate-500 mt-1">Polígono Industrial Metalúrgico, Nave 14</p>
+                    <p class="text-xs font-sans text-slate-400">Córdoba, España</p>
+                </div>
+                <div class="text-right font-sans">
+                    <span class="bg-slate-900 text-white px-3 py-1 text-xs font-bold uppercase rounded">Presupuesto</span>
+                    <h3 id="pdf-numero-presupuesto" class="text-xl font-bold text-slate-900 mt-2">Nº: ---</h3>
+                    <p id="pdf-fecha-presupuesto" class="text-sm text-slate-500">Fecha: --/--/----</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-8 mb-10 font-sans text-sm">
+                <div class="bg-slate-50 p-4 rounded-lg border">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Destinatario (Cliente)
+                    </h4>
+                    <p id="pdf-cliente-nombre" class="font-bold text-slate-900 text-base">---</p>
+                    <p id="pdf-cliente-nif" class="font-mono text-xs text-slate-600 mt-0.5">NIF: ---</p>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-lg border">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dirección de Envío / Obra
+                    </h4>
+                    <p id="pdf-cliente-direccion" class="text-slate-700 italic">---</p>
+                </div>
+            </div>
+
+            <div class="font-sans">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead class="border-b-2 border-slate-400 bg-slate-100 text-slate-700 font-bold">
+                        <tr>
+                            <th class="p-2.5">Descripción del Trabajo / Material</th>
+                            <th class="p-2.5 text-right w-24">Cantidad</th>
+                            <th class="p-2.5 text-right w-32">Precio Unit.</th>
+                            <th class="p-2.5 text-right w-24 text-rose-600">Desc. %</th>
+                            <!-- 👈 Nueva columna de descuento -->
+                            <th class="p-2.5 text-right w-32">Subtotal</th>
+                            <th class="columna-accion p-2.5 text-center w-16">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pdf-tbody-conceptos" class="divide-y divide-slate-200">
+                    </tbody>
+                </table>
+
+                <div class="bg-blue-50/50 p-2 flex gap-2 border-t border-b items-center mt-2">
+                    <input type="text" id="pdf-nuevo-desc" placeholder="Descripción del nuevo concepto metálico..."
+                        class="flex-1 p-1 text-xs border rounded bg-white">
+                    <input type="number" id="pdf-nuevo-cant" value="1" step="any"
+                        class="w-16 p-1 text-xs border rounded bg-white text-right">
+                    <input type="number" id="pdf-nuevo-precio" placeholder="Precio €" step="any"
+                        class="w-24 p-1 text-xs border rounded bg-white text-right">
+                    <!-- 👈 Nuevo Input para indicar el descuento de la línea -->
+                    <input type="number" id="pdf-nuevo-descuento" value="0" min="0" max="100" placeholder="0%"
+                        class="w-16 p-1 text-xs border rounded bg-white text-center font-mono text-rose-600">
+                    <button id="pdf-btn-add-concepto" type="button"
+                        class="bg-blue-900 text-white text-xs px-3 py-1.5 rounded font-bold hover:bg-blue-800">➕
+                        Añadir</button>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-end font-sans">
+                <div class="w-80 space-y-2 text-sm bg-slate-50 p-4 rounded-xl border border-slate-300">
+                    <div class="flex justify-between text-slate-600">
+                        <span>Base Imponible:</span>
+                        <span id="pdf-calculo-base" class="font-mono font-semibold">0.00 €</span>
+                    </div>
+                    <div class="flex justify-between text-slate-600 border-b pb-2">
+                        <span id="presupuesto-iva-porcentaje">I.V.A. (21%):</span>
+                        <!-- 👈 Añadido ID para que cambie dinámicamente -->
+                        <span id="pdf-calculo-iva" class="font-mono font-semibold">0.00 €</span>
+                    </div>
+                    <div class="flex justify-between text-slate-900 font-black text-base pt-1">
+                        <span>Total Presupuesto:</span>
+                        <span id="pdf-calculo-total" class="font-mono text-blue-900 text-lg">0.00 €</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Nuevo Presupuesto (Oculto por defecto) -->
+<div id="modal-nuevo-presupuesto"
+    class="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden border border-slate-100">
+        <!-- Cabecera del Modal -->
+        <div class="bg-slate-800 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="font-bold text-lg">Nuevo Presupuesto</h3>
+            <button id="btn-cerrar-modal" class="text-slate-300 hover:text-white text-xl font-bold">&times;</button>
+        </div>
+
+        <!-- Formulario -->
+        <form id="form-nuevo-presupuesto" class="p-6 space-y-4">
+            <!-- Añade esto dentro de form-nuevo-presupuesto (en tu HTML) -->
+            <div id="contenedor-modal-cliente" class="mb-4">
+                <label for="modal-cliente-id" class="block text-xs font-bold text-slate-700 uppercase mb-1">Cliente
+                    *</label>
+                <select id="modal-cliente-id"
+                    class="w-full p-2 border rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- Selecciona un cliente --</option>
+                </select>
+            </div>
+
+            <!-- Número de Presupuesto -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Número de Presupuesto</label>
+                <input type="text" id="modal-num-presupuesto" required
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm font-semibold">
+            </div>
+
+            <!-- Fecha -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha de Emisión</label>
+                <input type="date" id="modal-fecha" required
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm">
+            </div>
+
+            <!-- IVA -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">I.V.A. (%)</label>
+                <select id="modal-iva" required
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm">
+                    <option value="21" selected>21 % (General)</option>
+                    <option value="10">10 % (Reducido)</option>
+                    <option value="4">4 % (Superreducido)</option>
+                    <option value="0">0 % (Exento)</option>
+                </select>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex gap-3 justify-end pt-4 border-t border-slate-100">
+                <button type="button" id="btn-cancelar-presupuesto"
+                    class="px-4 py-2 bg-slate-150 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-lg transition">
+                    Cancelar
+                </button>
+                <button type="submit"
+                    class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition shadow-md">
+                    Crear Presupuesto
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

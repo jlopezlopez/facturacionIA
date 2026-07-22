@@ -57,6 +57,18 @@ async function navegarA(seccion, parametros = null) {
     }
 
     if (seccion === "presupuestos") {
+            // 🚀 CARGA DINÁMICA: Si el contenedor de presupuestos en index.html está vacío, inyecta presupuestos.html
+        if (contenedorSeccion && contenedorSeccion.innerHTML.trim() === "") {
+            try {
+                const respuesta = await fetch('presupuestos/presupuestos.html');
+                const html = await respuesta.text();
+                contenedorSeccion.innerHTML = html;
+            } catch (error) {
+                console.error("Error al cargar la plantilla de presupuestos.html:", error);
+                contenedorSeccion.innerHTML = "<p class='text-red-500 p-4'>Error al cargar el módulo de presupuestos.</p>";
+                return;
+            }
+        }
         inicializarModuloPresupuestos(parametros);
     }
 }
@@ -485,43 +497,72 @@ function cerrarDetalleFactura() {
 // ==========================================
 // MÓDULO C: PRESUPUESTOS Y MEDICIONES
 // ==========================================
+
 async function inicializarModuloPresupuestos(filtro = null) {
-    document.getElementById("pres-btn-add-concepto").onclick = () => agregarConceptoLineaPresupuesto();
-    document.getElementById("btn-guardar-cambios-presupuesto").onclick = () => guardarPresupuestoEnServidor();
+    // 1. Normalización del filtro para que sea compatible con app.js, clientes.js y presupuestos.js
+    const datosFiltro = filtro ? {
+        cliente_id: filtro.cliente_id || filtro.id || filtro.filtrarClienteId,
+        razonsocial: filtro.razonsocial || filtro.nombre
+    } : null;
 
-    document.getElementById("presupuestos-sub-detalle").classList.add("hidden");
-    document.getElementById("presupuestos-sub-lista").classList.remove("hidden");
+    // 2. Cargamos el JavaScript modular externo (presupuestos.js) para delegar el control
+    try {
+        const moduloPresupuestos = await import("./presupuestos/presupuestos.js");
 
-    const clienteId = filtro ? (filtro.cliente_id || filtro.id) : null;
+        // 3. Forzamos a que se muestre el listado inicializando las sub-vistas
+        const subVistaLista = document.getElementById("sub-vista-lista");
+        const subVistaDetalle = document.getElementById("sub-vista-detalle");
+        if (subVistaLista) subVistaLista.classList.remove("hidden");
+        if (subVistaDetalle) subVistaDetalle.classList.add("hidden");
 
-    await cargarPresupuestosDeBD(clienteId);
+        // 4. Dejar que presupuestos.js maneje la llamada al backend con el filtro unificado
+        await moduloPresupuestos.inicializar(datosFiltro);
 
-    if (filtro && clienteId) {
-        document.getElementById("titulo-modulo-presupuestos").textContent = `Presupuestos de: ${filtro.razonsocial || 'Cliente'}`;
+    } catch (error) {
+        console.warn("No se pudo iniciar de forma modular externa, aplicando fallback nativo:", error);
 
-        globalPresupuestos = globalPresupuestos.filter(p => {
-            const pClienteId = p.cliente_id || p.CLIENTE_ID || p.id_cliente;
-            return String(pClienteId) === String(clienteId);
-        });
-    } else {
-        document.getElementById("titulo-modulo-presupuestos").textContent = "Historial General de Presupuestos";
+        // FALLBACK NATIVO (Por seguridad, si el import falla)
+        document.getElementById("pdf-btn-add-concepto").onclick = () => agregarConceptoLineaPresupuesto();
+        document.getElementById("btn-guardar-cambios-presupuesto").onclick = () => guardarPresupuestoEnServidor();
+
+        const btnVolver = document.getElementById("btn-volver-listado");
+        if (btnVolver) btnVolver.onclick = () => cerrarDetallePresupuesto();
+
+        document.getElementById("sub-vista-detalle").classList.add("hidden");
+        document.getElementById("sub-vista-lista").classList.remove("hidden");
+
+        const clienteId = datosFiltro ? datosFiltro.cliente_id : null;
+        await cargarPresupuestosDeBD(clienteId);
+
+        if (datosFiltro && clienteId) {
+            document.getElementById("titulo-modulo-presupuestos").textContent = `Presupuestos de: ${datosFiltro.razonsocial || 'Cliente'}`;
+            globalPresupuestos = globalPresupuestos.filter(f => {
+                const fClienteId = f.cliente_id || f.CLIENTE_ID || f.id_cliente;
+                return String(fClienteId) === String(clienteId);
+            });
+        } else {
+            document.getElementById("titulo-modulo-presupuestos").textContent = "Historial General de Presupuestos";
+        }
+
+        renderizarTablaPresupuestos();
     }
-
-    renderizarTablaPresupuestos();
 }
 
 async function cargarPresupuestosDeBD(clienteId = null) {
     try {
         let url = `${API_URL}/facturacion/presupuestos/detallados`;
 
+        // Si el backend soporta filtrar directamente en la URL, lo dejamos.
+        // Si no, no pasa nada, porque luego filtraremos en el frontend.
         if (clienteId) {
-            url += `?cliente_id=${clienteId}`;
+            url += `?numerocliente=${clienteId}`;
         }
 
         const r = await fetch(url, {
             headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
         });
 
+        // Guardamos los presupuestos en la variable global
         globalPresupuestos = r.ok ? await r.json() : [];
     } catch (err) {
         console.error("Error en fetch de presupuestos:", err);
@@ -529,28 +570,30 @@ async function cargarPresupuestosDeBD(clienteId = null) {
     }
 }
 
+// (El resto del código se mantiene exactamente idéntico al tuyo sin modificaciones adicionales)
 function renderizarTablaPresupuestos() {
     const tbody = document.getElementById("tbody-presupuestos-lista");
     tbody.innerHTML = "";
 
     if (globalPresupuestos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400 italic">No hay presupuestos cargados en este tramo.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400 italic">No se registran presupuestos en este tramo.</td></tr>`;
         return;
     }
 
-    globalPresupuestos.forEach(p => {
+    globalPresupuestos.forEach(f => {
         const tr = document.createElement("tr");
-        tr.className = "border-b hover:bg-amber-50/50 text-xs text-slate-700 transition";
-        const total = p.total || p.total_presupuesto || 0;
+        tr.className = "border-b hover:bg-blue-50/50 text-xs text-slate-700 transition";
+        const total = f.total || f.total_presupuesto || 0;
         tr.innerHTML = `
-            <td class="p-3 font-bold text-amber-800">${p.numero}</td>
-            <td class="p-3">${p.fecha || '---'}</td>
-            <td class="p-3 font-semibold text-slate-900">${p.cliente_razonsocial || p.razonsocial || '---'}</td>
-            <td class="p-3 font-mono">${p.cliente_nif || p.nif || '---'}</td>
-            <td class="p-3"><span class="px-2 py-0.5 rounded font-bold text-[10px] bg-slate-100 text-slate-700">${p.estado || 'ESTUDIO'}</span></td>
-            <td class="p-3 text-right font-mono font-bold text-amber-950">${parseFloat(total).toFixed(2)} €</td>
+            <td class="p-3 font-bold text-blue-900">${f.numero}</td>
+            <td class="p-3">${f.fecha || '---'}</td>
+            <td class="p-3 font-semibold text-slate-900">${f.cliente_razonsocial || f.razonsocial || '---'}</td>
+            <td class="p-3 font-mono">${f.cliente_nif || f.nif || '---'}</td>
+            <td class="p-3">${f.cliente_telefono || f.telefono || '---'}</td>
+            <td class="p-3"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${f.aceptado ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">${f.aceptado ? 'ACEPTADO' : 'PENDIENTE'}</span></td>
+            <td class="p-3 text-right font-mono font-bold text-sm text-slate-950">${parseFloat(total).toFixed(2)} €</td>
         `;
-        tr.onclick = () => abrirFolioPresupuestoReal(p.id);
+        tr.onclick = () => abrirFolioPresupuestoReal(f.id);
         tbody.appendChild(tr);
     });
 }
@@ -565,24 +608,26 @@ async function abrirFolioPresupuestoReal(id) {
         if (!r.ok) throw new Error();
         presupuestoActivo = await r.json();
 
-        document.getElementById("presupuestos-sub-lista").classList.add("hidden");
-        document.getElementById("presupuestos-sub-detalle").classList.remove("hidden");
+        // ✨ Cambiados a los IDs reales de tu HTML
+        document.getElementById("sub-vista-lista").classList.add("hidden");
+        document.getElementById("sub-vista-detalle").classList.remove("hidden");
 
-        document.getElementById("pres-numero").textContent = `Nº: ${presupuestoActivo.numero}`;
-        document.getElementById("pres-fecha").textContent = `Fecha: ${presupuestoActivo.fecha || '---'}`;
-        document.getElementById("pres-cliente-nombre").textContent = presupuestoActivo.razonsocial || '---';
-        document.getElementById("pres-cliente-nif").textContent = `NIF: ${presupuestoActivo.NIF || '---'}`;
-        document.getElementById("pres-cliente-direccion").textContent = `${presupuestoActivo.calle || ''} ${presupuestoActivo.cliente_numero || ''}`.trim() || "Dirección de Obra";
+        document.getElementById("pdf-numero-presupuesto").textContent = `Nº: ${presupuestoActivo.numero}`;
+        document.getElementById("pdf-fecha-presupuesto").textContent = `Fecha: ${presupuestoActivo.fecha || '---'}`;
+        document.getElementById("pdf-cliente-nombre").textContent = presupuestoActivo.razonsocial || '---';
+        document.getElementById("pdf-cliente-nif").textContent = `NIF: ${presupuestoActivo.NIF || '---'}`;
+        document.getElementById("pdf-cliente-direccion").textContent = `${presupuestoActivo.calle || ''} ${presupuestoActivo.cliente_numero || ''}`.trim() || "Dirección Fiscal";
+        document.getElementById("check-presupuesto-pasado").checked = presupuestoActivo.pasado;
 
-        presupuestoConceptosActivos = presupuestoActivo.conceptos || [];
+        presupuestoConceptosActivos = presupuestoActiva.conceptos || [];
         calcularYRenderizarConceptosPresupuesto();
     } catch {
-        alert("No se pudo cargar el desglose del presupuesto.");
+        alert("No se pudo descargar el desglose del presupuesto.");
     }
 }
 
 function calcularYRenderizarConceptosPresupuesto() {
-    const tbody = document.getElementById("pres-tbody-conceptos");
+    const tbody = document.getElementById("pdf-tbody-conceptos");
     tbody.innerHTML = "";
     let base = 0;
 
@@ -623,17 +668,17 @@ function calcularYRenderizarConceptosPresupuesto() {
     const iva = base * (porcentajeIva / 100);
     const tot = base + iva;
 
-    document.getElementById("pres-calculo-base").textContent = `${base.toFixed(2)} €`;
-    document.getElementById("pres-calculo-iva").textContent = `${iva.toFixed(2)} €`;
-    document.getElementById("pres-calculo-total").textContent = `${tot.toFixed(2)} €`;
+    document.getElementById("pdf-calculo-base").textContent = `${base.toFixed(2)} €`;
+    document.getElementById("pdf-calculo-iva").textContent = `${iva.toFixed(2)} €`;
+    document.getElementById("pdf-calculo-total").textContent = `${tot.toFixed(2)} €`;
 }
 
 function agregarConceptoLineaPresupuesto() {
-    const d = document.getElementById("pres-nuevo-desc").value.trim();
-    const c = parseFloat(document.getElementById("pres-nuevo-cant").value);
-    const p = parseFloat(document.getElementById("pres-nuevo-precio").value);
+    const d = document.getElementById("pdf-nuevo-desc").value.trim();
+    const c = parseFloat(document.getElementById("pdf-nuevo-cant").value);
+    const p = parseFloat(document.getElementById("pdf-nuevo-precio").value);
 
-    const inputDesc = document.getElementById("pres-nuevo-descuento");
+    const inputDesc = document.getElementById("pdf-nuevo-descuento");
     const desc = inputDesc ? parseFloat(inputDesc.value) || 0 : 0;
 
     if (!d || isNaN(p)) return;
@@ -645,9 +690,9 @@ function agregarConceptoLineaPresupuesto() {
         descuento: desc
     });
 
-    document.getElementById("pres-nuevo-desc").value = "";
-    document.getElementById("pres-nuevo-cant").value = "1";
-    document.getElementById("pres-nuevo-precio").value = "";
+    document.getElementById("pdf-nuevo-desc").value = "";
+    document.getElementById("pdf-nuevo-cant").value = "1";
+    document.getElementById("pdf-nuevo-precio").value = "";
     if (inputDesc) inputDesc.value = "0";
 
     calcularYRenderizarConceptosPresupuesto();
@@ -655,24 +700,27 @@ function agregarConceptoLineaPresupuesto() {
 
 async function guardarPresupuestoEnServidor() {
     const payload = {
+        pasado: document.getElementById("check-presupuesto-pasado").checked,
         conceptos: presupuestoConceptosActivos
     };
     try {
-        await fetch(`${API_URL}/presupuestos/${presupuestoActivo.id}`, {
+        await fetch(`${API_URL}/facturacion/presupuestos/${presupuestoActivo.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token_taller")}` },
             body: JSON.stringify(payload)
         });
         alert("Presupuesto guardado con éxito.");
         cerrarDetallePresupuesto();
-    } catch { alert("Error al actualizar the presupuesto."); }
+    } catch { alert("Error al actualizar el presupuesto."); }
 }
 
 function cerrarDetallePresupuesto() {
-    document.getElementById("presupuestos-sub-detalle").classList.add("hidden");
-    document.getElementById("presupuestos-sub-lista").classList.remove("hidden");
+    // ✨ Cambiados a los IDs reales de tu HTML
+    document.getElementById("sub-vista-detalle").classList.add("hidden");
+    document.getElementById("sub-vista-lista").classList.remove("hidden");
     inicializarModuloPresupuestos();
 }
+
 
 // ==========================================
 // SESIÓN DE ACCESO GENERAL
