@@ -162,7 +162,7 @@ CREATE TABLE albaran (
   fecha DATE,
   iva REAL,                                     
   numerocliente INTEGER NOT NULL,
-  pagado BOOLEAN,
+  aceptado BOOLEAN,
   PRIMARY KEY (id),
   CONSTRAINT fk_albaran_cliente
     FOREIGN KEY (numerocliente) REFERENCES cliente(id)

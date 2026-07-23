@@ -6,6 +6,7 @@ from app.database import get_db_connection
 from app.routers.usuarios import router as usuarios_router
 from app.routers.clientes import router as clientes_router
 from app.routers.facturas import router as facturas_router 
+from app.routers.albaran import router as albaran_router
 from app.routers.informes import router as informes_router
 
 app = FastAPI(title="API Facturación Taller", version="1.0")
@@ -24,7 +25,8 @@ app.add_middleware(
 # Registro de rutas usando los nombres explícitos
 app.include_router(usuarios_router)
 app.include_router(clientes_router)
-app.include_router(facturas_router) 
+app.include_router(facturas_router)
+app.include_router(albaran_router)  
 app.include_router(informes_router)
 
 @app.get("/")
