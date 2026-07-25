@@ -424,7 +424,7 @@ class ConceptoNotaUpdate(BaseModel):
     descuento: float
 
 class NotaUpdate(BaseModel):
-    pagada: bool
+    aceptado: bool
     conceptos: List[ConceptoNotaUpdate]
 
 

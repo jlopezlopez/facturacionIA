@@ -117,9 +117,11 @@ export async function inicializar(filtro) {
                     <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
                         <div style="width: 40%; font-size: 13px; line-height: 1.8; color: #1e293b;">
                             <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding: 4px 0;">
-                                <span>Base Imponible:</span>
+                                <!-- <span>Base Imponible:</span> -->
+                                <span>Total:</span>
                                 <span style="font-weight: 600; font-family: monospace;">${baseImponible.toFixed(2)} €</span>
                             </div>
+                            <!-- 
                             <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding: 4px 0;">
                                 <span>I.V.A. (${porcentajeIva}%):</span>
                                 <span style="font-weight: 600; font-family: monospace;">${totalIva.toFixed(2)} €</span>
@@ -128,6 +130,7 @@ export async function inicializar(filtro) {
                                 <span>TOTAL:</span>
                                 <span style="font-family: monospace;">${totalAlbaran.toFixed(2)} €</span>
                             </div>
+                            -->
                         </div>
                     </div>
                 </div>
