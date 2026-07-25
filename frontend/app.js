@@ -14,11 +14,17 @@ let facturaConceptosActivos = [];
 let presupuestoActivo = null;
 let presupuestoConceptosActivos = [];
 
+let albaranActivo = null;
+let albaranConceptosActivos = [];
+
+let notaActiva = null;
+let notaConceptosActivos = [];
+
 // =========================================================================
 // ENRUTADOR CENTRAL DE INTERFAZ (Modificado para sincronía perfecta y modularidad)
 // =========================================================================
 async function navegarA(seccion, parametros = null) {
-    ["clientes", "facturas", "presupuestos"].forEach(s => {
+    ["clientes", "facturas", "presupuestos", "albaranes", "notas"].forEach(s => {
         const view = document.getElementById(`mod-view-${s}`);
         if (view) view.classList.add("hidden");
         const btn = document.getElementById(`nav-${s}`);
@@ -70,6 +76,42 @@ async function navegarA(seccion, parametros = null) {
             }
         }
         inicializarModuloPresupuestos(parametros);
+    }
+
+    if (seccion === "albaranes") {
+        // 🚀 CARGA DINÁMICA: Si el contenedor de albaranes en index.html está vacío, inyecta albaranes.html
+        if (contenedorSeccion && contenedorSeccion.innerHTML.trim() === "") {
+            try {
+                const respuesta = await fetch('albaranes/albaranes.html');
+                const html = await respuesta.text();
+                contenedorSeccion.innerHTML = html;
+            } catch (error) {
+                console.error("Error al cargar la plantilla de albaranes.html:", error);
+                contenedorSeccion.innerHTML = "<p class='text-red-500 p-4'>Error al cargar el módulo de albaranes.</p>";
+                return;
+            }
+        }
+
+        // Ejecutamos la inicialización cruzada mapeando los parámetros de clientes.js
+        inicializarModuloAlbaranes(parametros);
+    }
+
+     if (seccion === "notas") {
+        // 🚀 CARGA DINÁMICA: Si el contenedor de notas en index.html está vacío, inyecta notas.html
+        if (contenedorSeccion && contenedorSeccion.innerHTML.trim() === "") {
+            try {
+                const respuesta = await fetch('notas/notas.html');
+                const html = await respuesta.text();
+                contenedorSeccion.innerHTML = html;
+            } catch (error) {
+                console.error("Error al cargar la plantilla de notas.html:", error);
+                contenedorSeccion.innerHTML = "<p class='text-red-500 p-4'>Error al cargar el módulo de notas.</p>";
+                return;
+            }
+        }
+
+        // Ejecutamos la inicialización cruzada mapeando los parámetros de clientes.js
+        inicializarModuloNotas(parametros);
     }
 }
 
@@ -135,6 +177,8 @@ function renderizarTablaClientes() {
             <td class="p-3 text-center space-x-1 bg-slate-50/50 whitespace-nowrap">
                 <button class="btn-goto-pres bg-amber-600 hover:bg-amber-700 text-white font-bold px-2 py-1 rounded">📋 Presupuestos</button>
                 <button class="btn-goto-fac bg-blue-900 hover:bg-blue-950 text-white font-bold px-2 py-1 rounded">💵 Facturas</button>
+                <button class="btn-goto-alb bg-blue-900 hover:bg-blue-950 text-white font-bold px-2 py-1 rounded">💵 Albaranes</button>
+                <button class="btn-goto-not bg-blue-900 hover:bg-blue-950 text-white font-bold px-2 py-1 rounded">💵 Notas</button>
             </td>
             <td class="p-3 text-center whitespace-nowrap">
                 <button class="btn-edit bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-2 py-1 rounded">✏️ Editar</button>
@@ -144,6 +188,8 @@ function renderizarTablaClientes() {
 
         tr.querySelector(".btn-goto-pres").onclick = () => navegarA("presupuestos", { cliente_id: c.id, razonsocial: c.razonsocial });
         tr.querySelector(".btn-goto-fac").onclick = () => navegarA("facturas", { cliente_id: c.id, razonsocial: c.razonsocial });
+        tr.querySelector(".btn-goto-alb").onclick = () => navegarA("albaranes", { cliente_id: c.id, razonsocial: c.razonsocial });
+        tr.querySelector(".btn-goto-not").onclick = () => navegarA("notas", { cliente_id: c.id, razonsocial: c.razonsocial });
         tr.querySelector(".btn-edit").onclick = () => abrirModalModificarCliente(c);
         tr.querySelector(".btn-borrar").onclick = () => {
             eliminarCliente(c.id, tr);
@@ -720,6 +766,233 @@ function cerrarDetallePresupuesto() {
     document.getElementById("sub-vista-lista").classList.remove("hidden");
     inicializarModuloPresupuestos();
 }
+
+// ==========================================
+// MÓDULO D: ALBARANES Y FOLIO DIGITAL (PDF)
+// ==========================================
+async function inicializarModuloAlbaranes(filtro = null) {
+    // 1. Normalización del filtro para que sea compatible con app.js, clientes.js y albaranes.js
+    const datosFiltro = filtro ? {
+        cliente_id: filtro.cliente_id || filtro.id || filtro.filtrarClienteId,
+        razonsocial: filtro.razonsocial || filtro.nombre
+    } : null;
+
+    // 2. Cargamos el JavaScript modular externo (albaranes.js) para delegar el control
+    try {
+        const moduloAlbaranes = await import("./albaranes/albaranes.js");
+
+        // 3. Forzamos a que se muestre el listado inicializando las sub-vistas
+        const subVistaLista = document.getElementById("sub-vista-lista");
+        const subVistaDetalle = document.getElementById("sub-vista-detalle");
+        if (subVistaLista) subVistaLista.classList.remove("hidden");
+        if (subVistaDetalle) subVistaDetalle.classList.add("hidden");
+
+        // 4. Dejar que albaranes.js maneje la llamada al backend con el filtro unificado
+        await moduloAlbaranes.inicializar(datosFiltro);
+
+    } catch (error) {
+        console.warn("No se pudo iniciar de forma modular externa, aplicando fallback nativo:", error);
+
+        // FALLBACK NATIVO (Por seguridad, si el import falla)
+        document.getElementById("pdf-btn-add-concepto").onclick = () => agregarConceptoLineaAlbaran();
+        document.getElementById("btn-guardar-cambios-albaran").onclick = () => guardarAlbaranEnServidor();
+
+        const btnVolver = document.getElementById("btn-volver-listado");
+        if (btnVolver) btnVolver.onclick = () => cerrarDetalleFactura();
+
+        document.getElementById("sub-vista-detalle").classList.add("hidden");
+        document.getElementById("sub-vista-lista").classList.remove("hidden");
+
+        const clienteId = datosFiltro ? datosFiltro.cliente_id : null;
+        await cargarAlbaranesDeBD(clienteId);
+
+        if (datosFiltro && clienteId) {
+            document.getElementById("titulo-modulo-albaranes").textContent = `Albaranes de: ${datosFiltro.razonsocial || 'Cliente'}`;
+            globalAlbaranes = globalAlbaranes.filter(f => {
+                const fClienteId = f.cliente_id || f.CLIENTE_ID || f.id_cliente;
+                return String(fClienteId) === String(clienteId);
+            });
+        } else {
+            document.getElementById("titulo-modulo-albaranes").textContent = "Historial General de Albaranes";
+        }
+
+        renderizarTablaAlbaranes();
+    }
+}
+
+async function cargarAlbaranesDeBD(clienteId = null) {
+    try {
+        let url = `${API_URL}/albaran/albaran/detallados`;
+
+        // Si el backend soporta filtrar directamente en la URL, lo dejamos.
+        // Si no, no pasa nada, porque luego filtraremos en el frontend.
+        if (clienteId) {
+            url += `?numerocliente=${clienteId}`;
+        }
+
+        const r = await fetch(url, {
+            headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
+        });
+
+        // Guardamos las alabaranes en la variable global
+        globalAlbaranes = r.ok ? await r.json() : [];
+    } catch (err) {
+        console.error("Error en fetch de albaranes:", err);
+        globalAlbaranes = [];
+    }
+}
+
+// (El resto del código se mantiene exactamente idéntico al tuyo sin modificaciones adicionales)
+function renderizarTablaAlbaranes() {
+    const tbody = document.getElementById("tbody-albaranes-lista");
+    tbody.innerHTML = "";
+
+    if (globalAlbaranes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400 italic">No se registran albaranes en este tramo.</td></tr>`;
+        return;
+    }
+
+    globalAlbaranes.forEach(f => {
+        const tr = document.createElement("tr");
+        tr.className = "border-b hover:bg-blue-50/50 text-xs text-slate-700 transition";
+        const total = f.total || f.total_albaranes || 0;
+        tr.innerHTML = `
+            <td class="p-3 font-bold text-blue-900">${f.numero}</td>
+            <td class="p-3">${f.fecha || '---'}</td>
+            <td class="p-3 font-semibold text-slate-900">${f.cliente_razonsocial || f.razonsocial || '---'}</td>
+            <td class="p-3 font-mono">${f.cliente_nif || f.nif || '---'}</td>
+            <td class="p-3">${f.cliente_telefono || f.telefono || '---'}</td>
+            <td class="p-3"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${f.aceptado ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">${f.aceptado ? 'ACEPTADO' : 'PENDIENTE'}</span></td>
+            <td class="p-3 text-right font-mono font-bold text-sm text-slate-950">${parseFloat(total).toFixed(2)} €</td>
+        `;
+        tr.onclick = () => abrirFolioAlbaranReal(f.id);
+        tbody.appendChild(tr);
+    });
+}
+
+async function abrirFolioAlbaranReal(id) {
+    try {
+        const url = `${API_URL}/albaran/albaran/${id}`;
+        const r = await fetch(url, {
+            headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
+        });
+
+        if (!r.ok) throw new Error();
+        albaranActiva = await r.json();
+
+        // ✨ Cambiados a los IDs reales de tu HTML
+        document.getElementById("sub-vista-lista").classList.add("hidden");
+        document.getElementById("sub-vista-detalle").classList.remove("hidden");
+
+        document.getElementById("pdf-numero-albaran").textContent = `Nº: ${albaranActiva.numero}`;
+        document.getElementById("pdf-fecha-albaran").textContent = `Fecha: ${albaranActiva.fecha || '---'}`;
+        document.getElementById("pdf-cliente-nombre").textContent = albaranActiva.razonsocial || '---';
+        document.getElementById("pdf-cliente-nif").textContent = `NIF: ${albaranActiva.NIF || '---'}`;
+        document.getElementById("pdf-cliente-direccion").textContent = `${albaranActiva.calle || ''} ${albaranActiva.cliente_numero || ''}`.trim() || "Dirección Fiscal";
+        document.getElementById("check-albaran-aceptado").checked = albaranActiva.aceptado;
+
+        albaranConceptosActivos = albaranActiva.conceptos || [];
+        calcularYRenderizarConceptosAlbaran();
+    } catch {
+        alert("No se pudo descargar el desglose del albaran.");
+    }
+}
+
+function calcularYRenderizarConceptosAlbaran() {
+    const tbody = document.getElementById("pdf-tbody-conceptos");
+    tbody.innerHTML = "";
+    let base = 0;
+
+    albaranConceptosActivos.forEach((c, index) => {
+        const cant = parseFloat(c.cantidad || 0);
+        const pr = parseFloat(c.precio_unitario || c.preciounidad || c.precio || 0);
+        const desc = parseFloat(c.descuento || 0);
+
+        const sub = (cant * pr) * (1 - (desc / 100));
+        base += sub;
+
+        const etiquetaDescuento = desc > 0 ? ` <span class="text-rose-600 text-[10px] font-bold">(-${desc}%)</span>` : '';
+
+        const tr = document.createElement("tr");
+        tr.className = "border-b text-xs";
+        tr.innerHTML = `
+            <td class="p-2 text-slate-800 font-medium">${c.descripcion}${etiquetaDescuento}</td>
+            <td class="p-2 text-right font-mono">${cant}</td>
+            <td class="p-2 text-right font-mono">${pr.toFixed(2)} €</td>
+            <td class="p-2 text-right font-mono font-bold">${sub.toFixed(2)} €</td>
+            <td class="p-2 text-center"><button class="text-rose-600 font-bold hover:underline">Eliminar</button></td>
+        `;
+
+        tr.querySelector("button").onclick = () => {
+            albaranConceptosActivos.splice(index, 1);
+            calcularYRenderizarConceptosAlbaran();
+        };
+        tbody.appendChild(tr);
+    });
+
+    const porcentajeIva = (albaranActiva && albaranActiva.iva !== undefined) ? parseFloat(albaranActiva.iva) : 21;
+
+    const etiquetaIvaUI = document.getElementById("albaran-iva-porcentaje");
+    if (etiquetaIvaUI) {
+        etiquetaIvaUI.textContent = `I.V.A. (${porcentajeIva}%):`;
+    }
+
+    const iva = base * (porcentajeIva / 100);
+    const tot = base + iva;
+
+    document.getElementById("pdf-calculo-base").textContent = `${base.toFixed(2)} €`;
+    document.getElementById("pdf-calculo-iva").textContent = `${iva.toFixed(2)} €`;
+    document.getElementById("pdf-calculo-total").textContent = `${tot.toFixed(2)} €`;
+}
+
+function agregarConceptoLineaAlbaran() {
+    const d = document.getElementById("pdf-nuevo-desc").value.trim();
+    const c = parseFloat(document.getElementById("pdf-nuevo-cant").value);
+    const p = parseFloat(document.getElementById("pdf-nuevo-precio").value);
+
+    const inputDesc = document.getElementById("pdf-nuevo-descuento");
+    const desc = inputDesc ? parseFloat(inputDesc.value) || 0 : 0;
+
+    if (!d || isNaN(p)) return;
+
+    albaranConceptosActivos.push({
+        descripcion: d,
+        cantidad: c,
+        precio_unitario: p,
+        descuento: desc
+    });
+
+    document.getElementById("pdf-nuevo-desc").value = "";
+    document.getElementById("pdf-nuevo-cant").value = "1";
+    document.getElementById("pdf-nuevo-precio").value = "";
+    if (inputDesc) inputDesc.value = "0";
+
+    calcularYRenderizarConceptosAlbaran();
+}
+
+async function guardarAlbaranEnServidor() {
+    const payload = {
+        pagada: document.getElementById("check-albaran-aceptado").checked,
+        conceptos: facturaConceptosActivos
+    };
+    try {
+        await fetch(`${API_URL}/albaran/albaran/${albaranActiva.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token_taller")}` },
+            body: JSON.stringify(payload)
+        });
+        alert("Albarán guardado con éxito.");
+        cerrarDetalleFactura();
+    } catch { alert("Error al actualizar el Albarán."); }
+}
+
+function cerrarDetalleAlbaran() {
+    // ✨ Cambiados a los IDs reales de tu HTML
+    document.getElementById("sub-vista-detalle").classList.add("hidden");
+    document.getElementById("sub-vista-lista").classList.remove("hidden");
+    inicializarModuloAlbaran();
+}
+
 
 
 // ==========================================

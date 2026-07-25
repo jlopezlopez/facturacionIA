@@ -141,7 +141,7 @@ CREATE TABLE nota (
 -- Tabla conceptonota
 -- -----------------------------------------------------
 CREATE TABLE conceptonota (
-  numeronota INTEGER NOT NULL,
+  numeroconnota INTEGER NOT NULL,
   idnota INTEGER NOT NULL,
   descripcion VARCHAR(100),
   cantidad REAL,

@@ -31,7 +31,7 @@ def crear_albaran(albaran: AlbaranCreate, usuario_actual: dict = Depends(obtener
                     cursor.execute(
                         """INSERT INTO conceptoalbaran (numeroalbaran, idalbaran, descripcion, cantidad, preciounidad, descuento)
                            VALUES (%s, %s, %s, %s, %s, %s);""",
-                        (c.numeroconcepto, albaran_id, c.descripcion, c.cantidad, c.preciounidad, c.descuento)
+                        (c.numeroalbaran, albaran_id, c.descripcion, c.cantidad, c.preciounidad, c.descuento)
                     )
                 
                 conn.commit()
@@ -61,9 +61,9 @@ def crear_nota(nota: NotasCreate, usuario_actual: dict = Depends(obtener_usuario
                 # Insertar conceptos asociados
                 for c in nota.conceptos:
                     cursor.execute(
-                        """INSERT INTO conceptonota (numeroconcepto, idnota, descripcion, cantidad, preciounidad, descuento)
+                        """INSERT INTO conceptonota (numeroconnota, idnota, descripcion, cantidad, preciounidad, descuento)
                            VALUES (%s, %s, %s, %s, %s, %s);""",
-                        (c.numeroconcepto, nota_id, c.descripcion, c.cantidad, c.preciounidad, c.descuento)
+                        (c.numeroconnota, nota_id, c.descripcion, c.cantidad, c.preciounidad, c.descuento)
                     )
                 
                 conn.commit()
@@ -156,7 +156,7 @@ def descargar_albaran_pdf(albaran_id: int, usuario_actual: dict = Depends(obtene
                 }
                 
                 cursor.execute(
-                    "SELECT descripcion, cantidad, preciounidad, descuento FROM conceptoalbaran WHERE idalbaran = %s ORDER BY numeroconpresup ASC;",
+                    "SELECT descripcion, cantidad, preciounidad, descuento FROM conceptoalbaran WHERE idalbaran = %s ORDER BY numeroalbaran ASC;",
                     (albaran_id,)
                 )
                 conceptos_filas = cursor.fetchall()
@@ -204,7 +204,7 @@ def descargar_nota_pdf(nota_id: int, usuario_actual: dict = Depends(obtener_usua
                 }
                 
                 cursor.execute(
-                    "SELECT descripcion, cantidad, preciounidad, descuento FROM conceptonota WHERE idnota = %s ORDER BY numeroconcepto ASC;",
+                    "SELECT descripcion, cantidad, preciounidad, descuento FROM conceptonota WHERE idnota = %s ORDER BY numeroconnota ASC;",
                     (nota_id,)
                 )
                 conceptos_filas = cursor.fetchall()
@@ -356,7 +356,7 @@ def obtener_detalle_nota(nota_id: int, usuario_actual: dict = Depends(obtener_us
                 
                 # 2. Buscar conceptos vinculados
                 cursor.execute(
-                    "SELECT descripcion, cantidad, preciounidad, descuento FROM conceptonota WHERE idnota = %s ORDER BY numeroconcepto ASC;",
+                    "SELECT descripcion, cantidad, preciounidad, descuento FROM conceptonota WHERE idnota = %s ORDER BY numeroconnota ASC;",
                     (nota_id,)
                 )
                 conceptos_filas = cursor.fetchall()
@@ -397,7 +397,7 @@ def obtener_detalle_albaran(albaran_id: int, usuario_actual: dict = Depends(obte
                 
                 # 2. Buscar conceptos vinculados
                 cursor.execute(
-                    "SELECT descripcion, cantidad, preciounidad, descuento FROM conceptoalbaran WHERE idalbaran = %s ORDER BY numeroconpresup ASC;",
+                    "SELECT descripcion, cantidad, preciounidad, descuento FROM conceptoalbaran WHERE idalbaran = %s ORDER BY numeroalbaran ASC;",
                     (albaran_id,)
                 )
                 conceptos_filas = cursor.fetchall()
@@ -461,7 +461,7 @@ def actualizar_nota(
                 # Usaremos un autoincremento para 'numeroconcepto' partiendo de 1
                 for index, c in enumerate(payload.conceptos, start=1):
                     cursor.execute(
-                        """INSERT INTO conceptonota (numeroconcepto, idnota, descripcion, cantidad, preciounidad, descuento)
+                        """INSERT INTO conceptonota (numeroconnota, idnota, descripcion, cantidad, preciounidad, descuento)
                            VALUES (%s, %s, %s, %s, %s, %s);""",
                         (index, nota_id, c.descripcion, c.cantidad, c.precio_unitario, c.descuento)
                     )
@@ -611,7 +611,7 @@ def actualizar_albaran(
                 # Usaremos un autoincremento para 'numeroconcepto' partiendo de 1
                 for index, c in enumerate(payload.conceptos, start=1):
                     cursor.execute(
-                        """INSERT INTO conceptoalbaran (numeroconpresup, idalbaran, descripcion, cantidad, preciounidad, descuento)
+                        """INSERT INTO conceptoalbaran (numeroalbaran, idalbaran, descripcion, cantidad, preciounidad, descuento)
                            VALUES (%s, %s, %s, %s, %s, %s);""",
                         (index, albaran_id, c.descripcion, c.cantidad, c.precio_unitario, c.descuento)
                     )
