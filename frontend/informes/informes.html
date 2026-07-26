@@ -1,0 +1,64 @@
+<section id="vista-informes" class="p-6 max-w-7xl mx-auto space-y-6">
+    <!-- CABECERA Y FILTROS -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+            <h1 class="text-2xl font-black text-slate-800">Informe Anual de Facturación</h1>
+            <p class="text-sm text-slate-500">Resumen trimestral y desglose mensual de ingresos</p>
+        </div>
+        
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2">
+                <label for="select-anio-informe" class="text-sm font-bold text-slate-700">Año:</label>
+                <select id="select-anio-informe" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 font-bold cursor-pointer">
+                    <!-- Se rellena dinámicamente desde JS -->
+                </select>
+            </div>
+
+            <!-- Botón Excel -->
+            <button id="btn-exportar-excel" type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-3.5 py-2.5 rounded-lg flex items-center gap-2 transition shadow-sm cursor-pointer">
+                <span>Excel</span>
+            </button>
+
+            <!-- Botón PDF -->
+            <button id="btn-exportar-pdf" type="button" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm px-3.5 py-2.5 rounded-lg flex items-center gap-2 transition shadow-sm cursor-pointer">
+                <span>PDF</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- TARJETAS DE RESUMEN GLOBAL -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Base Imponible Total</p>
+            <p id="total-anual-base" class="text-2xl font-black text-slate-800 font-mono mt-1">0.00 €</p>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total IVA Repercutido</p>
+            <p id="total-anual-iva" class="text-2xl font-black text-blue-600 font-mono mt-1">0.00 €</p>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Facturado (con IVA)</p>
+            <p id="total-anual-con-iva" class="text-2xl font-black text-emerald-600 font-mono mt-1">0.00 €</p>
+        </div>
+    </div>
+
+    <!-- TABLA TRIMESTRAL -->
+    <div id="contenedor-informe-anual" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-100 text-slate-700 uppercase text-xs font-bold border-b">
+                    <tr>
+                        <th class="p-3.5">Periodo / Mes</th>
+                        <th class="p-3.5 text-center">Nº Facturas</th>
+                        <th class="p-3.5 text-right">Base Imponible</th>
+                        <th class="p-3.5 text-right">IVA</th>
+                        <th class="p-3.5 text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-informe-anual">
+                    <!-- Filas renderizadas por JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List
 from app.database import get_db_connection
 from app.auth.dependencies import obtener_usuario_actual
@@ -8,39 +8,55 @@ from datetime import datetime
 router = APIRouter(prefix="/informes", tags=["Informes y Estadísticas"])
 
 # ==========================================
-# 1. CUÁNTO SE HA FACTURADO ESTE MES
+# INFORME ANUAL DESGLOSADO POR MESES Y TRIMESTRES
 # ==========================================
-@router.get("/facturacion-mes", response_model=ResumenMesResponse)
-def obtener_facturacion_mes_actual(usuario_actual: dict = Depends(obtener_usuario_actual)):
+@router.get("/informe-anual")
+def obtener_informe_anual(
+    anio: int = Query(default=datetime.now().year),
+    usuario_actual: dict = Depends(obtener_usuario_actual)
+):
     try:
-        hoy = datetime.now()
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
-                # Consulta que calcula el total sumando (cantidad * precio) * (1 - descuento/100) 
-                # filtrando por el año y mes actuales.
+                # Consulta agrupada por el número de mes
                 query = """
                     SELECT 
+                        EXTRACT(MONTH FROM f.fecha)::INTEGER as mes,
                         COUNT(DISTINCT f.id) as total_facturas,
                         COALESCE(SUM((cf.cantidad * cf.preciounidad) * (1 - (cf.descuento / 100.0))), 0) as base_imponible,
+                        COALESCE(SUM(((cf.cantidad * cf.preciounidad) * (1 - (cf.descuento / 100.0))) * (f.iva / 100.0)), 0) as total_iva,
                         COALESCE(SUM(((cf.cantidad * cf.preciounidad) * (1 - (cf.descuento / 100.0))) * (1 + (f.iva / 100.0))), 0) as total_con_iva
                     FROM factura f
                     LEFT JOIN conceptofactura cf ON f.id = cf.idfactura
-                    WHERE EXTRACT(MONTH FROM f.fecha) = %s 
-                      AND EXTRACT(YEAR FROM f.fecha) = %s;
+                    WHERE EXTRACT(YEAR FROM f.fecha) = %s
+                    GROUP BY mes
+                    ORDER BY mes ASC;
                 """
-                cursor.execute(query, (hoy.month, hoy.year))
-                res = cursor.fetchone()
+                cursor.execute(query, (anio,))
+                filas = cursor.fetchall()
                 
-                meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
-                
+                # Mapa básico para asegurar que todos los meses (1 al 12) tengan estructura incluso sin facturas
+                meses_nombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+                meses_datos = {i: {"mes": i, "nombre": meses_nombres[i-1], "facturas": 0, "base": 0.0, "iva": 0.0, "total": 0.0} for i in range(1, 13)}
+
+                for f in filas:
+                    num_mes = f[0]
+                    meses_datos[num_mes] = {
+                        "mes": num_mes,
+                        "nombre": meses_nombres[num_mes - 1],
+                        "facturas": f[1],
+                        "base": round(float(f[2]), 2),
+                        "iva": round(float(f[3]), 2),
+                        "total": round(float(f[4]), 2)
+                    }
+
                 return {
-                    "mes_actual": f"{meses[hoy.month - 1]} {hoy.year}",
-                    "facturas_emitidas": res[0],
-                    "total_facturado_sin_iva": round(float(res[1]), 2),
-                    "total_facturado_con_iva": round(float(res[2]), 2)
+                    "anio": anio,
+                    "meses": list(meses_datos.values())
                 }
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al calcular informe mensual: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al generar el informe anual: {str(e)}")
 
 
 # ==========================================

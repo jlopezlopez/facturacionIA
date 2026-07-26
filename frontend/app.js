@@ -1,5 +1,6 @@
 const API_URL = "http://127.0.0.1:8000";
 
+
 // ESTADOS GLOBALES DE LA APLICACIÓN
 let globalClientes = [];
 let globalFacturas = [];
@@ -63,7 +64,7 @@ async function navegarA(seccion, parametros = null) {
     }
 
     if (seccion === "presupuestos") {
-            // 🚀 CARGA DINÁMICA: Si el contenedor de presupuestos en index.html está vacío, inyecta presupuestos.html
+        // 🚀 CARGA DINÁMICA: Si el contenedor de presupuestos en index.html está vacío, inyecta presupuestos.html
         if (contenedorSeccion && contenedorSeccion.innerHTML.trim() === "") {
             try {
                 const respuesta = await fetch('presupuestos/presupuestos.html');
@@ -96,7 +97,7 @@ async function navegarA(seccion, parametros = null) {
         inicializarModuloAlbaranes(parametros);
     }
 
-     if (seccion === "notas") {
+    if (seccion === "notas") {
         // 🚀 CARGA DINÁMICA: Si el contenedor de notas en index.html está vacío, inyecta notas.html
         if (contenedorSeccion && contenedorSeccion.innerHTML.trim() === "") {
             try {
@@ -113,6 +114,24 @@ async function navegarA(seccion, parametros = null) {
         // Ejecutamos la inicialización cruzada mapeando los parámetros de clientes.js
         inicializarModuloNotas(parametros);
     }
+    if (seccion === "informes") {
+        // 🚀 CARGA DINÁMICA DE LA PLANTILLA HTML
+        if (contenedorSeccion && contenedorSeccion.innerHTML.trim() === "") {
+            try {
+                const respuesta = await fetch('informes/informes.html');
+                const html = await respuesta.text();
+                contenedorSeccion.innerHTML = html;
+            } catch (error) {
+                console.error("Error al cargar la plantilla de informes.html:", error);
+                contenedorSeccion.innerHTML = "<p class='text-red-500 p-4'>Error al cargar el módulo de informes.</p>";
+                return;
+            }
+        }
+
+        // Ejecutamos la inicialización importando el JS dinámicamente
+        await inicializarModuloInformes(parametros);
+    }
+
 }
 
 // ==========================================
@@ -1218,6 +1237,18 @@ function cerrarDetalleNota() {
     document.getElementById("sub-vista-detalle").classList.add("hidden");
     document.getElementById("sub-vista-lista").classList.remove("hidden");
     inicializarModuloNotas();
+}
+
+// ==========================================
+// MÓDULO F INFORMES
+// ==========================================
+async function inicializarModuloInformes(parametros = null) {
+    try {
+        const moduloInformes = await import("./informes/informes.js");
+        await moduloInformes.inicializarModuloInformes(parametros);
+    } catch (error) {
+        console.error("Error al cargar el módulo dinámico de informes:", error);
+    }
 }
 
 // ==========================================
