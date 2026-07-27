@@ -139,7 +139,7 @@ def descargar_albaran_pdf(albaran_id: int, usuario_actual: dict = Depends(obtene
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 query_albaran = """
-                    SELECT p.numeroalbaran, p.fecha, p.iva, c.razonsocial, c.NIF, c.calle, c.numero, c.piso, c.poblacion, c.provincia, c.telefono
+                    SELECT p.numeroalbaran, p.fecha, p.iva, c.razonsocial, c.NIF, c.calle, c.numero, c.piso, c.cp, c.poblacion, c.provincia, c.telefono
                     FROM albaran p
                     INNER JOIN cliente c ON p.numerocliente = c.id
                     WHERE p.id = %s;
@@ -152,7 +152,7 @@ def descargar_albaran_pdf(albaran_id: int, usuario_actual: dict = Depends(obtene
                 cabecera = {"numero": res[0], "fecha": str(res[1]), "iva_porcentaje": float(res[2])}
                 cliente = {
                     "razonsocial": res[3], "NIF": res[4], "calle": res[5], "numero": res[6],
-                    "piso": res[7], "poblacion": res[8], "provincia": res[9], "telefono": res[10]
+                    "piso": res[7], "cp": res[8], "poblacion": res[9], "provincia": res[10], "telefono": res[11]
                 }
                 
                 cursor.execute(
@@ -187,7 +187,7 @@ def descargar_nota_pdf(nota_id: int, usuario_actual: dict = Depends(obtener_usua
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 query_nota = """
-                    SELECT f.numeronota, f.fecha, f.iva, c.razonsocial, c.NIF, c.calle, c.numero, c.piso, c.poblacion, c.provincia, c.telefono
+                    SELECT f.numeronota, f.fecha, f.iva, c.razonsocial, c.NIF, c.calle, c.numero, c.piso, c.cp, c.poblacion, c.provincia, c.telefono
                     FROM nota f
                     INNER JOIN cliente c ON f.numerocliente = c.id
                     WHERE f.id = %s;
@@ -200,7 +200,7 @@ def descargar_nota_pdf(nota_id: int, usuario_actual: dict = Depends(obtener_usua
                 cabecera = {"numero": res[0], "fecha": str(res[1]), "iva_porcentaje": float(res[2])}
                 cliente = {
                     "razonsocial": res[3], "NIF": res[4], "calle": res[5], "numero": res[6],
-                    "piso": res[7], "poblacion": res[8], "provincia": res[9], "telefono": res[10]
+                    "piso": res[7], "cp": res[8], "poblacion": res[9], "provincia": res[10], "telefono": res[11]
                 }
                 
                 cursor.execute(
@@ -344,7 +344,7 @@ def obtener_detalle_nota(nota_id: int, usuario_actual: dict = Depends(obtener_us
                 # 1. Buscar cabecera y datos de cliente
                 query = """
                     SELECT f.id, f.numeronota, f.fecha, f.aceptado, f.iva, 
-                           c.razonsocial, c.NIF, c.calle, c.numero, c.poblacion
+                           c.razonsocial, c.NIF, c.calle, c.numero, c.piso, c.cp, c.poblacion, c.provincia
                     FROM nota f
                     INNER JOIN cliente c ON f.numerocliente = c.id
                     WHERE f.id = %s;
@@ -367,7 +367,8 @@ def obtener_detalle_nota(nota_id: int, usuario_actual: dict = Depends(obtener_us
                 
                 return {
                     "id": res[0], "numero": res[1], "fecha": str(res[2]), "pagada": res[3], "iva": float(res[4]),
-                    "razonsocial": res[5], "NIF": res[6], "calle": res[7], "cliente_numero": res[8], "poblacion": res[9],
+                    "razonsocial": res[5], "NIF": res[6], "calle": res[7], "cliente_numero": res[8],"piso": res[9], 
+                    "cp": res[10], "poblacion": res[11], "provincia": res[12],
                     "conceptos": conceptos
                 }
     except Exception as e:
@@ -385,7 +386,7 @@ def obtener_detalle_albaran(albaran_id: int, usuario_actual: dict = Depends(obte
                 # 1. Buscar cabecera y datos de cliente
                 query = """
                     SELECT p.id, p.numeroalbaran, p.fecha, p.aceptado, p.iva, 
-                           c.razonsocial, c.NIF, c.calle, c.numero, c.poblacion
+                           c.razonsocial, c.NIF, c.calle, c.numero, c.piso, c.cp, c.poblacion, c.provincia
                     FROM albaran p
                     INNER JOIN cliente c ON p.numerocliente = c.id
                     WHERE p.id = %s;
@@ -408,7 +409,8 @@ def obtener_detalle_albaran(albaran_id: int, usuario_actual: dict = Depends(obte
                 
                 return {
                     "id": res[0], "numero": res[1], "fecha": str(res[2]), "aceptado": res[3], "iva": float(res[4]),
-                    "razonsocial": res[5], "NIF": res[6], "calle": res[7], "cliente_numero": res[8], "poblacion": res[9],
+                    "razonsocial": res[5], "NIF": res[6], "calle": res[7], "cliente_numero": res[8],"piso": res[9], 
+                    "cp": res[10], "poblacion": res[11], "provincia": res[12],
                     "conceptos": conceptos
                 }
     except Exception as e:

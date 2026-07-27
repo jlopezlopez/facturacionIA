@@ -149,3 +149,56 @@ def obtener_presupuestos_cliente(cliente_id: int, usuario_actual: dict = Depends
                 ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al buscar presupuestos del cliente: {str(e)}")
+
+
+    # Añadir al final de informes.py
+
+# ==========================================
+# INFORME ANUAL DESGLOSADO POR CLIENTE
+# ==========================================
+@router.get("/informe-clientes")
+def obtener_informe_clientes(
+    anio: int = Query(default=datetime.now().year),
+    usuario_actual: dict = Depends(obtener_usuario_actual)
+):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                query = """
+                    SELECT 
+                        c.id as cliente_id,
+                        COALESCE(c.razonsocial, 'Cliente Sin Nombre') as razonsocial,
+                        COALESCE(c.nif, '-') as nif,
+                        COUNT(DISTINCT f.id) as total_facturas,
+                        COALESCE(SUM((cf.cantidad * cf.preciounidad) * (1 - (cf.descuento / 100.0))), 0) as base_imponible,
+                        COALESCE(SUM(((cf.cantidad * cf.preciounidad) * (1 - (cf.descuento / 100.0))) * (f.iva / 100.0)), 0) as total_iva,
+                        COALESCE(SUM(((cf.cantidad * cf.preciounidad) * (1 - (cf.descuento / 100.0))) * (1 + (f.iva / 100.0))), 0) as total_con_iva
+                    FROM factura f
+                    INNER JOIN cliente c ON f.numerocliente = c.id
+                    LEFT JOIN conceptofactura cf ON f.id = cf.idfactura
+                    WHERE EXTRACT(YEAR FROM f.fecha) = %s
+                    GROUP BY c.id, c.razonsocial, c.nif
+                    ORDER BY total_con_iva DESC;
+                """
+                cursor.execute(query, (anio,))
+                filas = cursor.fetchall()
+
+                clientes_datos = []
+                for f in filas:
+                    clientes_datos.append({
+                        "cliente_id": f[0],
+                        "razonsocial": f[1],
+                        "nif": f[2],
+                        "facturas": f[3],
+                        "base": round(float(f[4]), 2),
+                        "iva": round(float(f[5]), 2),
+                        "total": round(float(f[6]), 2)
+                    })
+
+                return {
+                    "anio": anio,
+                    "clientes": clientes_datos
+                }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar el informe por clientes: {str(e)}")

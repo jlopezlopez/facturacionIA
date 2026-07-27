@@ -25,7 +25,7 @@ let notaConceptosActivos = [];
 // ENRUTADOR CENTRAL DE INTERFAZ (Modificado para sincronía perfecta y modularidad)
 // =========================================================================
 async function navegarA(seccion, parametros = null) {
-    ["clientes", "facturas", "presupuestos", "albaranes", "notas"].forEach(s => {
+    ["clientes", "facturas", "presupuestos", "albaranes", "notas", "informes"].forEach(s => {
         const view = document.getElementById(`mod-view-${s}`);
         if (view) view.classList.add("hidden");
         const btn = document.getElementById(`nav-${s}`);
@@ -114,8 +114,12 @@ async function navegarA(seccion, parametros = null) {
         // Ejecutamos la inicialización cruzada mapeando los parámetros de clientes.js
         inicializarModuloNotas(parametros);
     }
-    if (seccion === "informes") {
-        // 🚀 CARGA DINÁMICA DE LA PLANTILLA HTML
+    
+    if (seccion === "informes" || seccion === "informes-clientes") {
+        // Asignamos la vista contenedora (ambos botones comparten la misma plantilla HTML)
+        const contenedorSeccion = document.getElementById("mod-view-informes");
+
+        // 🚀 CARGA DINÁMICA DE LA PLANTILLA HTML (solo si está vacía)
         if (contenedorSeccion && contenedorSeccion.innerHTML.trim() === "") {
             try {
                 const respuesta = await fetch('informes/informes.html');
@@ -128,8 +132,11 @@ async function navegarA(seccion, parametros = null) {
             }
         }
 
-        // Ejecutamos la inicialización importando el JS dinámicamente
-        await inicializarModuloInformes(parametros);
+        // Definimos el modo según el botón pulsado
+        const modo = (seccion === "informes-clientes") ? "clientes" : "mensual";
+
+        // Ejecutamos la inicialización pasando el modo dentro de los parámetros
+        await inicializarModuloInformes({ ...parametros, modo: modo });
     }
 
 }

@@ -76,13 +76,14 @@ export async function inicializar(filtro) {
             const htmlNotaClasica = `
                 <div style="width: 690px; background: white; color: #000000; padding: 20px; font-family: system-ui, -apple-system, sans-serif;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #cbd5e1; padding-bottom: 20px; margin-bottom: 25px;">
-                        <div style="font-size: 13px; line-height: 1.5; color: #1e293b; text-align: left;">
-                            <h3 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Talleres Moreno SCP</h3>
-                            <p style="margin: 2px 0;">Polígono Industrial Metalúrgico, Nave 14</p>
-                            <p style="margin: 2px 0;">Añora, Córdoba</p>
-                            <p style="margin: 2px 0;"><span style="font-weight: 600;">CIF:</span> B12345678</p>
-                            <p style="margin: 2px 0;"><span style="font-weight: 600;">Teléfono:</span> +34 600 000 000</p>
-                            <p style="margin: 2px 0;"><span style="font-weight: 600;">Email:</span> info@tu-taller.com</p>
+                         <div style="font-size: 13px; line-height: 1.5; color: #1e293b; text-align: left;">
+                            <h3 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Talleres Moreno López S.L.</h3>
+                            <p style="margin: 2px 0;">La Fragua</p>
+                            <p style="margin: 2px 0;">C/ San Antonio, 3</p>
+                            <p style="margin: 2px 0;">14450 Añora, Córdoba</p>
+                            <p style="margin: 2px 0;"><span style="font-weight: 600;">NIF:</span> B-14787246</p>
+                            <p style="margin: 2px 0;"><span style="font-weight: 600;">Teléfono:</span> +34 696 906 255, 647 698 915, 957 15 12 54</p>
+                            <p style="margin: 2px 0;"><span style="font-weight: 600;">Email:</span> lafraguaforja@gmail.com</p>
                         </div>
                         <div style="text-align: right;">
                             <h1 style="margin: 0 0 10px 0; font-size: 24px; font-weight: 900; text-transform: uppercase; color: #0f172a; letter-spacing: 1px;">Nota</h1>

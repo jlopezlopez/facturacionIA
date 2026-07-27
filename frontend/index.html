@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +11,7 @@
     <!-- Librería para generar archivos Excel (.xlsx) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
+
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col">
 
     <div id="vista-login" class="flex items-center justify-center min-h-screen px-4">
@@ -21,68 +23,91 @@
             <form id="form-login" class="space-y-4">
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1">Usuario</label>
-                    <input type="text" id="login-usuario" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="login-usuario" required
+                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1">Contraseña</label>
-                    <input type="password" id="login-password" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <input type="password" id="login-password" required
+                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                 </div>
-                <button type="submit" class="w-full bg-blue-900 text-white py-2 rounded-lg font-semibold hover:bg-blue-800 transition">Iniciar Sesión</button>
+                <button type="submit"
+                    class="w-full bg-blue-900 text-white py-2 rounded-lg font-semibold hover:bg-blue-800 transition">Iniciar
+                    Sesión</button>
             </form>
         </div>
     </div>
 
-    <div id="vista-dashboard" class="hidden flex flex-1 min-h-screen">
-        
-        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shadow-xl">
-            <div>
-                <div class="p-5 bg-slate-950 text-white font-bold text-lg border-b border-slate-800">
+    <!-- VISTA DASHBOARD: Fija a la pantalla y con overflow escondido -->
+    <div id="vista-dashboard" class="hidden flex h-screen w-full overflow-hidden">
+
+        <!-- MENÚ LATERAL: Ocupa el 100% de la altura de la ventana (h-full) -->
+        <aside class="w-64 h-full bg-slate-900 text-slate-300 flex flex-col justify-between shadow-xl shrink-0">
+            <div class="flex flex-col flex-1 min-h-0">
+                <div class="p-5 bg-slate-950 text-white font-bold text-lg border-b border-slate-800 shrink-0">
                     🛠️ Talleres Moreno SCP
                 </div>
-                <nav class="p-4 space-y-2">
-                    <button onclick="navegarA('clientes')" id="nav-clientes" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                <nav class="p-4 space-y-2 overflow-y-auto flex-1">
+                    <button onclick="navegarA('clientes')" id="nav-clientes"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
                         👥 Fichas de Clientes
                     </button>
-                    <button onclick="navegarA('presupuestos')" id="nav-presupuestos" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <button onclick="navegarA('presupuestos')" id="nav-presupuestos"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
                         📋 Presupuestos / Obras
                     </button>
-                    <button onclick="navegarA('facturas')" id="nav-facturas" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <button onclick="navegarA('facturas')" id="nav-facturas"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
                         💵 Facturas Emitidas
                     </button>
-                    <button onclick="navegarA('albaranes')" id="nav-albaranes" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
-                        💵 Albaranes 
+                    <button onclick="navegarA('albaranes')" id="nav-albaranes"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                        🏢 Albaranes
                     </button>
-                    <button onclick="navegarA('notas')" id="nav-notas" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
-                        💵 Notas 
+                    <button onclick="navegarA('notas')" id="nav-notas"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                        🏢 Notas
                     </button>
-                     <button onclick="navegarA('informes')" id="nav-informes" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
-                        📋 informes 
+                    <button onclick="navegarA('informes')" id="nav-informes"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800 hover:text-white">
+                        📋 Informes  
                     </button>
                 </nav>
             </div>
-            <div class="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
+            
+            <!-- Pie de sidebar: Siempre visible en la parte inferior -->
+            <div class="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between shrink-0">
                 <span id="usuario-sesion" class="text-xs font-mono text-slate-400 truncate max-w-[120px]"></span>
-                <button id="btn-logout" class="text-xs bg-red-600/20 text-red-400 px-2 py-1 rounded hover:bg-red-600 hover:text-white transition">Salir</button>
+                <button id="btn-logout"
+                    class="text-xs bg-red-600/20 text-red-400 px-2 py-1 rounded hover:bg-red-600 hover:text-white transition">Salir</button>
             </div>
         </aside>
 
-        <main class="flex-1 p-8 overflow-y-auto">
-            
+        <!-- ÁREA PRINCIPAL: Solo esta zona tiene scroll cuando hay muchos datos -->
+        <main class="flex-1 h-full p-8 overflow-y-auto">
+
             <section id="mod-view-clientes" class="hidden space-y-6">
                 <div class="flex justify-between items-center">
                     <div>
                         <h2 class="text-2xl font-bold text-slate-800">Fichas de Clientes</h2>
-                        <p class="text-slate-500 text-xs">Usa las cabeceras ID o Razón Social para ordenar la base de datos de 11 columnas</p>
+                        <p class="text-slate-500 text-xs">Usa las cabeceras ID o Razón Social para ordenar la base de
+                            datos de 11 columnas</p>
                     </div>
-                    <button id="btn-nuevo-cliente" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg shadow">➕ Nuevo Cliente</button>
+                    <button id="btn-nuevo-cliente"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg shadow">➕
+                        Nuevo Cliente</button>
                 </div>
                 <div class="bg-white rounded-xl shadow border overflow-hidden">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-slate-50 border-b font-semibold text-slate-700 select-none">
                             <tr>
-                                <th id="th-id" class="p-3 cursor-pointer hover:bg-slate-100 text-blue-900 transition">ID ⇅</th>
-                                <th id="th-razon" class="p-3 cursor-pointer hover:bg-slate-100 text-blue-900 transition">Razón Social ⇅</th>
-                                <th id="th-nif" class="p-3 cursor-pointer hover:bg-slate-100 text-blue-900 transition">NIF ⇅</th>
+                                <th id="th-id" class="p-3 cursor-pointer hover:bg-slate-100 text-blue-900 transition">ID
+                                    ⇅</th>
+                                <th id="th-razon"
+                                    class="p-3 cursor-pointer hover:bg-slate-100 text-blue-900 transition">Razón Social
+                                    ⇅</th>
+                                <th id="th-nif" class="p-3 cursor-pointer hover:bg-slate-100 text-blue-900 transition">
+                                    NIF ⇅</th>
                                 <th class="p-3">Teléfono</th>
                                 <th class="p-3">Dirección Completa</th>
                                 <th class="p-3">Observaciones</th>
@@ -96,20 +121,20 @@
             </section>
 
             <section id="mod-view-facturas" class="hidden space-y-6">
-                
+
             </section>
 
             <section id="mod-view-presupuestos" class="hidden space-y-6">
-               
+
             </section>
             <section id="mod-view-albaranes" class="hidden space-y-6">
-               
+
             </section>
             <section id="mod-view-notas" class="hidden space-y-6">
-               
+
             </section>
             <section id="mod-view-informes" class="hidden space-y-6">
-               
+
             </section>
         </main>
     </div>
@@ -120,24 +145,42 @@
             <form id="form-cliente" class="space-y-3">
                 <input type="hidden" id="cliente-id-input">
                 <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Razón Social *</label><input type="text" id="c-razonsocial" required class="w-full p-2 border rounded text-sm"></div>
-                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">NIF / CIF *</label><input type="text" id="c-nif" required class="w-full p-2 border rounded text-sm font-mono"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Razón Social
+                            *</label><input type="text" id="c-razonsocial" required
+                            class="w-full p-2 border rounded text-sm"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">NIF / CIF *</label><input
+                            type="text" id="c-nif" required class="w-full p-2 border rounded text-sm font-mono"></div>
                 </div>
-                <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Teléfono de Contacto</label><input type="text" id="c-telefono" class="w-full p-2 border rounded text-sm"></div>
+                <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Teléfono de
+                        Contacto</label><input type="text" id="c-telefono" class="w-full p-2 border rounded text-sm">
+                </div>
                 <div class="grid grid-cols-4 gap-2">
-                    <div class="col-span-2"><label class="block text-[10px] font-bold text-slate-500 uppercase">Dirección / Calle</label><input type="text" id="c-calle" class="w-full p-2 border rounded text-sm"></div>
-                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Número</label><input type="text" id="c-numero" class="w-full p-2 border rounded text-sm"></div>
-                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Piso / Puerta</label><input type="text" id="c-piso" class="w-full p-2 border rounded text-sm"></div>
+                    <div class="col-span-2"><label
+                            class="block text-[10px] font-bold text-slate-500 uppercase">Dirección / Calle</label><input
+                            type="text" id="c-calle" class="w-full p-2 border rounded text-sm"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Número</label><input
+                            type="text" id="c-numero" class="w-full p-2 border rounded text-sm"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Piso / Puerta</label><input
+                            type="text" id="c-piso" class="w-full p-2 border rounded text-sm"></div>
                 </div>
                 <div class="grid grid-cols-3 gap-2">
-                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Población</label><input type="text" id="c-poblacion" class="w-full p-2 border rounded text-sm"></div>
-                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Provincia</label><input type="text" id="c-provincia" class="w-full p-2 border rounded text-sm"></div>
-                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Cód. Postal (CP)</label><input type="text" id="c-cp" class="w-full p-2 border rounded text-sm font-mono"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Población</label><input
+                            type="text" id="c-poblacion" class="w-full p-2 border rounded text-sm"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Provincia</label><input
+                            type="text" id="c-provincia" class="w-full p-2 border rounded text-sm"></div>
+                    <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Cód. Postal
+                            (CP)</label><input type="text" id="c-cp"
+                            class="w-full p-2 border rounded text-sm font-mono"></div>
                 </div>
-                <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Observaciones Técnicas</label><textarea id="c-observaciones" rows="3" class="w-full p-2 border rounded text-sm text-slate-700 bg-slate-50"></textarea></div>
+                <div><label class="block text-[10px] font-bold text-slate-500 uppercase">Observaciones
+                        Técnicas</label><textarea id="c-observaciones" rows="3"
+                        class="w-full p-2 border rounded text-sm text-slate-700 bg-slate-50"></textarea></div>
                 <div class="flex gap-2 pt-2">
-                    <button type="button" onclick="document.getElementById('modal-cliente').classList.add('hidden')" class="w-full p-2 bg-slate-100 rounded text-sm font-medium">Cancelar</button>
-                    <button type="submit" class="w-full p-2 bg-blue-900 text-white rounded text-sm font-semibold hover:bg-blue-800">Guardar Ficha</button>
+                    <button type="button" onclick="document.getElementById('modal-cliente').classList.add('hidden')"
+                        class="w-full p-2 bg-slate-100 rounded text-sm font-medium">Cancelar</button>
+                    <button type="submit"
+                        class="w-full p-2 bg-blue-900 text-white rounded text-sm font-semibold hover:bg-blue-800">Guardar
+                        Ficha</button>
                 </div>
             </form>
         </div>
@@ -145,4 +188,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>

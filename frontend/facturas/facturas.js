@@ -72,12 +72,18 @@ export async function inicializar(filtro) {
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #cbd5e1; padding-bottom: 20px; margin-bottom: 25px;">
                         <!-- Bloque izquierdo: Tus Datos -->
                         <div style="font-size: 13px; line-height: 1.5; color: #1e293b; text-align: left;">
+                            <!--
                             <h3 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Talleres Moreno SCP</h3>
                             <p style="margin: 2px 0;">Polígono Industrial Metalúrgico, Nave 14</p>
                             <p style="margin: 2px 0;">Añora, Córdoba</p>
                             <p style="margin: 2px 0;"><span style="font-weight: 600;">CIF:</span> B12345678</p>
                             <p style="margin: 2px 0;"><span style="font-weight: 600;">Teléfono:</span> +34 600 000 000</p>
                             <p style="margin: 2px 0;"><span style="font-weight: 600;">Email:</span> info@tu-taller.com</p>
+                            -->
+                            <div class="w-80 h-25 flex items-center justify-start">
+                                <img src="./img/LOGO_Taller.jpg" alt="Logo Talleres Moreno López"
+                                 class="max-w-full max-h-full object-contain object-left" />
+                            </div>
                         </div>
 
                         <!-- Bloque derecho: Título y Números -->
@@ -93,7 +99,17 @@ export async function inicializar(filtro) {
                         <h3 style="margin: 0 0 8px 0; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #0f172a; letter-spacing: 0.5px;">Cliente:</h3>
                         <p style="margin: 3px 0;"><span style="font-weight: 700; color: #0f172a;">Razón Social:</span> ${facturaSeleccionada.razonsocial || '---'}</p>
                         <p style="margin: 3px 0;"><span style="font-weight: 700; color: #0f172a;">NIF/DNI:</span> ${facturaSeleccionada.NIF || facturaSeleccionada.cliente_nif || '---'}</p>
-                        <p style="margin: 3px 0;"><span style="font-weight: 700; color: #0f172a;">Dirección:</span> ${[facturaSeleccionada.calle, facturaSeleccionada.cliente_numero, facturaSeleccionada.poblacion].filter(Boolean).join(" ") || '---'}</p>
+                       <p style="margin: 3px 0;"><span style="font-weight: 700; color: #0f172a;">Dirección:</span> ${[
+                    [facturaSeleccionada.calle, facturaSeleccionada.cliente_numero, facturaSeleccionada.piso].filter(Boolean).join(" "),
+
+                    // Envolvemos la segunda línea en un span con sangría opcional si la hay
+                    (() => {
+                        const ub = [facturaSeleccionada.cp, facturaSeleccionada.poblacion, facturaSeleccionada.provincia].filter(Boolean).join(" ");
+                        return ub ? `<span style="display: inline-block; margin-left: 70px;">${ub}</span>` : null;
+                    })()
+                ].filter(Boolean).join("<br>") || '---'
+                }</p>
+                 
                     </div>
 
                     <!-- Tabla de Conceptos (Estilo Clásico) -->
@@ -491,7 +507,31 @@ async function cargarDetalleFacturaPDF(facturaId) {
         document.getElementById("pdf-cliente-nif").textContent = `NIF: ${facturaSeleccionada.NIF || facturaSeleccionada.cliente_nif || '---'}`;
 
         const direccion = `${facturaSeleccionada.calle || ''} ${facturaSeleccionada.cliente_numero || ''}`.trim();
-        document.getElementById("pdf-cliente-direccion").textContent = direccion || "No especificada";
+
+        // 1. Línea superior: Calle + Número + Piso
+        const linea1 = [
+            [facturaSeleccionada.calle, facturaSeleccionada.cliente_numero].filter(Boolean).join(" "),
+            facturaSeleccionada.piso || facturaSeleccionada.cliente_piso // Por si la variable del piso se llama piso o cliente_piso
+        ].filter(Boolean).join(", "); // Añade una coma antes del piso si existe (Ej: "Calle Mayor 14, 2ºA")
+
+        // 2. Línea inferior: Código Postal + Población + Provincia
+        const linea2 = [
+            facturaSeleccionada.cp || facturaSeleccionada.cliente_cp,
+            facturaSeleccionada.poblacion || facturaSeleccionada.cliente_poblacion,
+            facturaSeleccionada.provincia || facturaSeleccionada.cliente_provincia
+        ].filter(Boolean).join(" "); // Une CP, Población y Provincia con espacios
+
+        // 3. Unimos ambas líneas con un salto de línea HTML (<br>)
+        const direccionCompleta = [linea1, linea2].filter(Boolean).join("<br>");
+
+        // 4. Inyectamos en el DOM (usamos innerHTML para interpretar el <br>)
+        const elDireccion = document.getElementById("pdf-cliente-direccion");
+        if (elDireccion) {
+            elDireccion.innerHTML = direccionCompleta || "No especificada";
+        }
+
+
+        //    document.getElementById("pdf-cliente-direccion").textContent = direccion || "No especificada";
         document.getElementById("check-factura-pagada").checked = facturaSeleccionada.pagada;
 
         // Se cargan los conceptos asociados reales
@@ -650,10 +690,10 @@ async function eliminarFactura(facturaId, filaElemento = null) {
 
         if (response.ok || response.status === 204) {
             alert("Factura eliminada correctamente.");
-            
+
             // Volver a la vista de lista si estábamos en el detalle
             mostrarOcultarVistas(true);
-            
+
             // Recargar la tabla desde el servidor
             await cargarFacturasServidor();
             renderizarListadoTabla();

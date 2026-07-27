@@ -66,7 +66,7 @@
                 </button>
                 <button id="btn-borrar-factura"
                     class="bg-blue-900 text-white text-xs font-bold px-4 py-2 rounded shadow hover:bg-blue-800 flex items-center gap-1">
-                     🗑️ Borrar Factura
+                    🗑️ Borrar Factura
                 </button>
 
             </div>
@@ -76,11 +76,18 @@
             class="bg-white max-w-4xl mx-auto p-12 rounded-xl shadow-2xl border border-slate-300 font-serif text-slate-800 relative">
 
             <div class="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
-                <div>
-                    <h1 class="text-3xl font-black tracking-tight text-slate-900 font-sans">CARPINTERÍA METÁLICA</h1>
-                    <p class="text-sm font-sans text-slate-500 mt-1">Polígono Industrial Metalúrgico, Nave 14</p>
-                    <p class="text-xs font-sans text-slate-400">Córdoba, España</p>
-                </div>
+                <!--
+                 <div>
+                    <h1 class="text-3xl font-black tracking-tight text-slate-900 font-sans">Talleres Moreno López SL</h1>
+                    <p class="text-sm font-sans text-slate-500 mt-1">C/ San Antonio, 3</p>
+                    <p class="text-xs font-sans text-slate-400">11450 Añora Córdoba, España</p>
+                </div> 
+                -->
+                <!-- Contenedor con límites definidos para el logo -->
+                <div class="w-80 h-25 flex items-center justify-start">
+                    <img src="./img/LOGO_Taller.jpg" alt="Logo Talleres Moreno López"
+                        class="max-w-full max-h-full object-contain object-left" />
+                </div> 
                 <div class="text-right font-sans">
                     <span class="bg-slate-900 text-white px-3 py-1 text-xs font-bold uppercase rounded">Factura
                         Rectificativa / Emitida</span>
@@ -97,8 +104,7 @@
                     <p id="pdf-cliente-nif" class="font-mono text-xs text-slate-600 mt-0.5">NIF: ---</p>
                 </div>
                 <div class="bg-slate-50 p-4 rounded-lg border">
-                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dirección de Envío / Obra
-                    </h4>
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Dirección de Envío       </h4>
                     <p id="pdf-cliente-direccion" class="text-slate-700 italic">---</p>
                 </div>
             </div>

@@ -72,12 +72,13 @@ export async function inicializar(filtro) {
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #cbd5e1; padding-bottom: 20px; margin-bottom: 25px;">
                         <!-- Bloque izquierdo: Tus Datos -->
                         <div style="font-size: 13px; line-height: 1.5; color: #1e293b; text-align: left;">
-                            <h3 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Talleres Moreno SCP</h3>
-                            <p style="margin: 2px 0;">Polígono Industrial Metalúrgico, Nave 14</p>
-                            <p style="margin: 2px 0;">Añora, Córdoba</p>
-                            <p style="margin: 2px 0;"><span style="font-weight: 600;">CIF:</span> B12345678</p>
-                            <p style="margin: 2px 0;"><span style="font-weight: 600;">Teléfono:</span> +34 600 000 000</p>
-                            <p style="margin: 2px 0;"><span style="font-weight: 600;">Email:</span> info@tu-taller.com</p>
+                            <h3 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Talleres Moreno López S.L.</h3>
+                            <p style="margin: 2px 0;">La Fragua</p>
+                            <p style="margin: 2px 0;">C/ San Antonio, 3</p>
+                            <p style="margin: 2px 0;">14450 Añora, Córdoba</p>
+                            <p style="margin: 2px 0;"><span style="font-weight: 600;">NIF:</span> B-14787246</p>
+                            <p style="margin: 2px 0;"><span style="font-weight: 600;">Teléfono:</span> +34 696 906 255, 647 698 915, 957 15 12 54</p>
+                            <p style="margin: 2px 0;"><span style="font-weight: 600;">Email:</span> lafraguaforja@gmail.com</p>
                         </div>
 
                         <!-- Bloque derecho: Título y Números -->
@@ -494,7 +495,31 @@ async function cargarDetalleAlbaranPDF(albaranId) {
         document.getElementById("pdf-cliente-nif").textContent = `NIF: ${albaranSeleccionado.NIF || albaranSeleccionado.cliente_nif || '---'}`;
 
         const direccion = `${albaranSeleccionado.calle || ''} ${albaranSeleccionado.cliente_numero || ''}`.trim();
-        document.getElementById("pdf-cliente-direccion").textContent = direccion || "No especificada";
+
+        // 1. Línea superior: Calle + Número + Piso
+        const linea1 = [
+            [albaranSeleccionado.calle, albaranSeleccionado.cliente_numero].filter(Boolean).join(" "),
+            albaranSeleccionado.piso || albaranSeleccionado.cliente_piso // Por si la variable del piso se llama piso o cliente_piso
+        ].filter(Boolean).join(", "); // Añade una coma antes del piso si existe (Ej: "Calle Mayor 14, 2ºA")
+
+        // 2. Línea inferior: Código Postal + Población + Provincia
+        const linea2 = [
+            albaranSeleccionado.cp || albaranSeleccionado.cliente_cp,
+            albaranSeleccionado.poblacion || albaranSeleccionado.cliente_poblacion,
+            albaranSeleccionado.provincia || albaranSeleccionado.cliente_provincia
+        ].filter(Boolean).join(" "); // Une CP, Población y Provincia con espacios
+
+        // 3. Unimos ambas líneas con un salto de línea HTML (<br>)
+        const direccionCompleta = [linea1, linea2].filter(Boolean).join("<br>");
+
+        // 4. Inyectamos en el DOM (usamos innerHTML para interpretar el <br>)
+        const elDireccion = document.getElementById("pdf-cliente-direccion");
+        if (elDireccion) {
+            elDireccion.innerHTML = direccionCompleta || "No especificada";
+        }
+
+      //  const direccion = `${albaranSeleccionado.calle || ''} ${albaranSeleccionado.cliente_numero || ''}`.trim();
+      // document.getElementById("pdf-cliente-direccion").textContent = direccion || "No especificada";
         document.getElementById("check-albaran-aceptado").checked = albaranSeleccionado.aceptado;
 
         // Se cargan los conceptos asociados reales

@@ -187,7 +187,7 @@ def descargar_factura_pdf(factura_id: int, usuario_actual: dict = Depends(obtene
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 query_factura = """
-                    SELECT f.numerofactura, f.fecha, f.iva, c.razonsocial, c.NIF, c.calle, c.numero, c.piso, c.poblacion, c.provincia, c.telefono
+                    SELECT f.numerofactura, f.fecha, f.iva, c.razonsocial, c.NIF, c.calle, c.numero, c.piso, c.poblacion, c.provincia, c.cp, c.telefono
                     FROM factura f
                     INNER JOIN cliente c ON f.numerocliente = c.id
                     WHERE f.id = %s;
@@ -200,7 +200,7 @@ def descargar_factura_pdf(factura_id: int, usuario_actual: dict = Depends(obtene
                 cabecera = {"numero": res[0], "fecha": str(res[1]), "iva_porcentaje": float(res[2])}
                 cliente = {
                     "razonsocial": res[3], "NIF": res[4], "calle": res[5], "numero": res[6],
-                    "piso": res[7], "poblacion": res[8], "provincia": res[9], "telefono": res[10]
+                    "piso": res[7], "poblacion": res[8], "provincia": res[9], "cp": res[10], "telefono": res[11]
                 }
                 
                 cursor.execute(
@@ -344,7 +344,7 @@ def obtener_detalle_factura(factura_id: int, usuario_actual: dict = Depends(obte
                 # 1. Buscar cabecera y datos de cliente
                 query = """
                     SELECT f.id, f.numerofactura, f.fecha, f.pagado, f.iva, 
-                           c.razonsocial, c.NIF, c.calle, c.numero, c.poblacion
+                           c.razonsocial, c.NIF, c.calle, c.numero, c.poblacion, c.cp, c.piso, c.provincia
                     FROM factura f
                     INNER JOIN cliente c ON f.numerocliente = c.id
                     WHERE f.id = %s;
@@ -367,7 +367,7 @@ def obtener_detalle_factura(factura_id: int, usuario_actual: dict = Depends(obte
                 
                 return {
                     "id": res[0], "numero": res[1], "fecha": str(res[2]), "pagada": res[3], "iva": float(res[4]),
-                    "razonsocial": res[5], "NIF": res[6], "calle": res[7], "cliente_numero": res[8], "poblacion": res[9],
+                    "razonsocial": res[5], "NIF": res[6], "calle": res[7], "cliente_numero": res[8], "poblacion": res[9], "cp": res[10],  "piso": res[11],"provincia": res[12],
                     "conceptos": conceptos
                 }
     except Exception as e:
@@ -385,7 +385,7 @@ def obtener_detalle_presupuesto(presupuesto_id: int, usuario_actual: dict = Depe
                 # 1. Buscar cabecera y datos de cliente
                 query = """
                     SELECT p.id, p.numeropresupuesto, p.fecha, p.aceptado, p.iva, 
-                           c.razonsocial, c.NIF, c.calle, c.numero, c.poblacion
+                           c.razonsocial, c.NIF, c.calle, c.numero, c.piso, c.poblacion, c.cp, c.provincia
                     FROM presupuesto p
                     INNER JOIN cliente c ON p.numerocliente = c.id
                     WHERE p.id = %s;
@@ -408,7 +408,7 @@ def obtener_detalle_presupuesto(presupuesto_id: int, usuario_actual: dict = Depe
                 
                 return {
                     "id": res[0], "numero": res[1], "fecha": str(res[2]), "aceptado": res[3], "iva": float(res[4]),
-                    "razonsocial": res[5], "NIF": res[6], "calle": res[7], "cliente_numero": res[8], "poblacion": res[9],
+                    "razonsocial": res[5], "NIF": res[6], "calle": res[7], "cliente_numero": res[8], "piso": res[9], "poblacion": res[10], "cp": res[11],"provincia": res[12],
                     "conceptos": conceptos
                 }
     except Exception as e:

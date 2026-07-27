@@ -77,12 +77,13 @@ export async function inicializar(filtro) {
                 <div style="width: 690px; background: white; color: #000000; padding: 20px; font-family: system-ui, -apple-system, sans-serif;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #cbd5e1; padding-bottom: 20px; margin-bottom: 25px;">
                         <div style="font-size: 13px; line-height: 1.5; color: #1e293b; text-align: left;">
-                            <h3 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Talleres Moreno SCP</h3>
-                            <p style="margin: 2px 0;">Polígono Industrial Metalúrgico, Nave 14</p>
-                            <p style="margin: 2px 0;">Añora, Córdoba</p>
-                            <p style="margin: 2px 0;"><span style="font-weight: 600;">CIF:</span> B12345678</p>
-                            <p style="margin: 2px 0;"><span style="font-weight: 600;">Teléfono:</span> +34 600 000 000</p>
-                            <p style="margin: 2px 0;"><span style="font-weight: 600;">Email:</span> info@tu-taller.com</p>
+                            <h3 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Talleres Moreno López S.L.</h3>
+                            <p style="margin: 2px 0;">La Fragua</p>
+                            <p style="margin: 2px 0;">C/ San Antonio, 3</p>
+                            <p style="margin: 2px 0;">14450 Añora, Córdoba</p>
+                            <p style="margin: 2px 0;"><span style="font-weight: 600;">NIF:</span> B-14787246</p>
+                            <p style="margin: 2px 0;"><span style="font-weight: 600;">Teléfono:</span> +34 696 906 255, 647 698 915, 957 15 12 54</p>
+                            <p style="margin: 2px 0;"><span style="font-weight: 600;">Email:</span> lafraguaforja@gmail.com</p>
                         </div>
                         <div style="text-align: right;">
                             <h1 style="margin: 0 0 10px 0; font-size: 24px; font-weight: 900; text-transform: uppercase; color: #0f172a; letter-spacing: 1px;">Presupuesto</h1>
@@ -94,7 +95,16 @@ export async function inicializar(filtro) {
                         <h3 style="margin: 0 0 8px 0; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #0f172a; letter-spacing: 0.5px;">Cliente:</h3>
                         <p style="margin: 3px 0;"><span style="font-weight: 700; color: #0f172a;">Razón Social:</span> ${presupuestoSeleccionado.razonsocial || '---'}</p>
                         <p style="margin: 3px 0;"><span style="font-weight: 700; color: #0f172a;">NIF/DNI:</span> ${presupuestoSeleccionado.NIF || presupuestoSeleccionado.cliente_nif || '---'}</p>
-                        <p style="margin: 3px 0;"><span style="font-weight: 700; color: #0f172a;">Dirección:</span> ${[presupuestoSeleccionado.calle, presupuestoSeleccionado.cliente_numero, presupuestoSeleccionado.poblacion].filter(Boolean).join(" ") || '---'}</p>
+                          <p style="margin: 3px 0;"><span style="font-weight: 700; color: #0f172a;">Dirección:</span> ${[
+                    [presupuestoSeleccionado.calle, presupuestoSeleccionado.cliente_numero, presupuestoSeleccionado.piso].filter(Boolean).join(" "),
+
+                    // Envolvemos la segunda línea en un span con sangría opcional si la hay
+                    (() => {
+                        const ub = [presupuestoSeleccionado.cp, presupuestoSeleccionado.poblacion, presupuestoSeleccionado.provincia].filter(Boolean).join(" ");
+                        return ub ? `<span style="display: inline-block; margin-left: 70px;">${ub}</span>` : null;
+                    })()
+                ].filter(Boolean).join("<br>") || '---'
+                }</p>
                     </div>
                     <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
                         <thead>
@@ -453,7 +463,33 @@ async function cargarDetallePresupuestoPDF(presupuestoId) {
         document.getElementById("pdf-cliente-nif").textContent = `NIF: ${presupuestoSeleccionado.NIF || presupuestoSeleccionado.cliente_nif || '---'}`;
 
         const direccion = `${presupuestoSeleccionado.calle || ''} ${presupuestoSeleccionado.cliente_numero || ''}`.trim();
-        document.getElementById("pdf-cliente-direccion").textContent = direccion || "No especificada";
+
+        // 1. Línea superior: Calle + Número + Piso
+        const linea1 = [
+            [presupuestoSeleccionado.calle, presupuestoSeleccionado.cliente_numero].filter(Boolean).join(" "),
+            presupuestoSeleccionado.piso || presupuestoSeleccionado.cliente_piso // Por si la variable del piso se llama piso o cliente_piso
+        ].filter(Boolean).join(", "); // Añade una coma antes del piso si existe (Ej: "Calle Mayor 14, 2ºA")
+
+        // 2. Línea inferior: Código Postal + Población + Provincia
+        const linea2 = [
+            presupuestoSeleccionado.cp || presupuestoSeleccionado.cliente_cp,
+            presupuestoSeleccionado.poblacion || presupuestoSeleccionado.cliente_poblacion,
+            presupuestoSeleccionado.provincia || presupuestoSeleccionado.cliente_provincia
+        ].filter(Boolean).join(" "); // Une CP, Población y Provincia con espacios
+
+        // 3. Unimos ambas líneas con un salto de línea HTML (<br>)
+        const direccionCompleta = [linea1, linea2].filter(Boolean).join("<br>");
+
+        // 4. Inyectamos en el DOM (usamos innerHTML para interpretar el <br>)
+        const elDireccion = document.getElementById("pdf-cliente-direccion");
+        if (elDireccion) {
+            elDireccion.innerHTML = direccionCompleta || "No especificada";
+        }
+
+       // const direccion = `${presupuestoSeleccionado.calle || ''} ${presupuestoSeleccionado.cliente_numero || ''}`.trim();
+       // document.getElementById("pdf-cliente-direccion").textContent = direccion || "No especificada";
+       
+       
         document.getElementById("check-presupuesto-aceptado").checked = presupuestoSeleccionado.aceptado;
 
         // Se cargan los conceptos asociados reales
