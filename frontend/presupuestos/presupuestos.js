@@ -1,4 +1,4 @@
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "http://192.168.18.103:8000";
 
 let todasPresupuestos = [];
 let presupuestoSeleccionado = null;

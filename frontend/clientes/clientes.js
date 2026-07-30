@@ -14,7 +14,7 @@ export async function inicializar(parametro) {
 }
 
 async function cargarDatos() {
-    const r = await fetch("http://127.0.0.1:8000/clientes/", {
+    const r = await fetch("http://192.168.18.103:8000/clientes/", {
         headers: { "Authorization": `Bearer ${localStorage.getItem("token_taller")}` }
     });
     clientes = await r.json();

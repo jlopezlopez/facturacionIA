@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import get_db_connection
@@ -9,14 +10,34 @@ from app.routers.facturas import router as facturas_router
 from app.routers.albaran import router as albaran_router
 from app.routers.informes import router as informes_router
 
-app = FastAPI(title="API Facturación Taller", version="1.0")
+# Leer variable de entorno (ej: ENVIRONMENT="production")
+ENV = os.getenv("ENVIRONMENT", "production") 
+
+if ENV == "production":
+    # Desactiva la documentación interactiva y el esquema OpenAPI
+    app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+else:
+    # Habilitado solo en desarrollo local
+    #app = FastAPI()
+    app = FastAPI(title="API Facturación Taller", version="1.0")
 
 # ==========================================
 # CONFIGURACIÓN DE CORS (PERMISOS FRONTEND)
 # ==========================================
+
+origins = [
+    "https://tu-dominio-taller.com",  # Solo tu dominio de producción
+    "http://127.0.0.1:5500",          # Si usas algún servidor local para pruebas
+    "http://localhost:5500",  
+    "https://localhost:5500",
+    "http://192.168.18.103:5500",
+    "http://192.168.18.103:8000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Permite peticiones desde cualquier origen (perfecto para desarrollo)
+    #allow_origins=["*"], # Permite peticiones desde cualquier origen (perfecto para desarrollo)
+    allow_origins=origins, # Permite peticiones solo desde origins)
     allow_credentials=True,
     allow_methods=["*"], # Permite GET, POST, PUT, DELETE, etc.
     allow_headers=["*"], # Permite enviar tokens y cabeceras de seguridad
