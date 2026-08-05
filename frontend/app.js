@@ -1,6 +1,6 @@
-//const API_URL = "http://127.0.0.1:8000";
+const API_URL = "http://127.0.0.1:8000";
 
-const API_URL = "http://192.168.18.103:8000";
+//const API_URL = "http://192.168.18.103:8000";
 
 // ESTADOS GLOBALES DE LA APLICACIÓN
 let globalClientes = [];
@@ -1293,3 +1293,19 @@ function comprobarSesion() {
 }
 
 comprobarSesion();
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const texts = document.querySelectorAll('.sidebar-text');
+    
+    // Alterna el ancho entre el estado expandido (w-64) y colapsado (w-16)
+    if (sidebar.classList.contains('w-64')) {
+        sidebar.classList.remove('w-64');
+        sidebar.classList.add('w-16');
+        texts.forEach(el => el.classList.add('hidden'));
+    } else {
+        sidebar.classList.remove('w-16');
+        sidebar.classList.add('w-64');
+        texts.forEach(el => el.classList.remove('hidden'));
+    }
+}
